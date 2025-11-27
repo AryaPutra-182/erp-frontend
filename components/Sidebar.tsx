@@ -8,10 +8,12 @@ const menu = [
   { name: 'Dashboard', href: '/' },
   { name: 'Customers', href: '/customers' },
   { name: 'Products', href: '/products' },
+  { name: 'Manufacturing', href: '/manufacturing' },
   { name: 'Quotations', href: '/quotations' },
   { name: 'Sales Orders', href: '/sales-orders' },
   { name: 'Delivery Orders', href: '/delivery-orders' },
   { name: 'Invoices', href: '/invoices' },
+
 ];
 
 export default function Sidebar() {

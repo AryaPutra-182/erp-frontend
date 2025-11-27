@@ -23,15 +23,13 @@ export default function CreateMaterial() {
   const triggerFile = () => fileRef.current?.click()
 
   const onImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const f = e.target.files?.[0] || null
-    setImageFile(f)
-    if (f) setImagePreview(URL.createObjectURL(f))
+    const file = e.target.files?.[0] || null
+    setImageFile(file)
+    if (file) setImagePreview(URL.createObjectURL(file))
   }
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-
-    if (!form.name.trim()) return push('Nama material wajib', 'error')
 
     const fd = new FormData()
     fd.append('name', form.name)
@@ -40,7 +38,6 @@ export default function CreateMaterial() {
     fd.append('category', form.category)
     fd.append('internalReference', form.internalReference)
     fd.append('weight', String(form.weight))
-
     if (imageFile) fd.append('image', imageFile)
 
     try {
@@ -50,8 +47,8 @@ export default function CreateMaterial() {
       })
 
       if (!res.ok) throw new Error('API error')
-
-      push('Material ditambahkan', 'success')
+      
+      push('Material dibuat', 'success')
       router.push('/products')
 
     } catch (error) {
@@ -60,61 +57,78 @@ export default function CreateMaterial() {
   }
 
   return (
-    <div className="bg-black text-white p-6 rounded">
-      <h2 className="text-xl font-bold mb-4">Material</h2>
+    <div className="bg-[#0D1117] text-white p-8 rounded-xl shadow-xl border border-gray-800 max-w-5xl mx-auto">
+      <h2 className="text-2xl font-bold mb-6 text-cyan-400">Tambah Material Baru</h2>
 
-      <form onSubmit={handleSubmit} className="flex gap-6">
+      <form onSubmit={handleSubmit} className="grid grid-cols-3 gap-10">
 
-        {/* LEFT FORM */}
-        <div className="flex-1 space-y-4">
+        {/* LEFT SIDE FORM */}
+        <div className="col-span-2 space-y-5">
 
-          <label>Nama Material</label>
-          <input className="w-full bg-gray-800 px-3 py-2 rounded"
-            value={form.name}
-            onChange={e => setForm({ ...form, name: e.target.value })}
-          />
+          <div>
+            <label className="block text-sm text-gray-300 mb-1">Nama Material</label>
+            <input className="w-full bg-gray-900 px-3 py-2 rounded border border-gray-700 focus:border-cyan-400 transition"
+              value={form.name}
+              onChange={e => setForm({ ...form, name: e.target.value })}
+            />
+          </div>
 
-          <label>Tipe Material</label>
-          <select className="w-full bg-gray-800 px-3 py-2 rounded"
-            value={form.type}
-            onChange={e => setForm({ ...form, type: e.target.value })}>
-            <option value="Langsung">Langsung</option>
-            <option value="Tidak Langsung">Tidak Langsung</option>
-          </select>
+          <div>
+            <label className="block text-sm text-gray-300 mb-1">Tipe Material</label>
+            <select className="w-full bg-gray-900 px-3 py-2 rounded border border-gray-700 focus:border-cyan-400 transition"
+              value={form.type}
+              onChange={e => setForm({ ...form, type: e.target.value })}>
+              <option value="Langsung">Langsung</option>
+              <option value="Tidak Langsung">Tidak Langsung</option>
+            </select>
+          </div>
 
-          <label>Cost</label>
-          <input type="number" className="w-full bg-gray-800 px-3 py-2 rounded"
-            value={form.cost}
-            onChange={e => setForm({ ...form, cost: Number(e.target.value) })}
-          />
+          <div className="grid grid-cols-2 gap-5">
+            <div>
+              <label className="block text-sm text-gray-300 mb-1">Cost</label>
+              <input type="number" className="w-full bg-gray-900 px-3 py-2 rounded border border-gray-700 focus:border-cyan-400 transition"
+                value={form.cost}
+                onChange={e => setForm({ ...form, cost: Number(e.target.value) })}
+              />
+            </div>
 
-          <label>Kategori</label>
-          <input className="w-full bg-gray-800 px-3 py-2 rounded"
-            value={form.category}
-            onChange={e => setForm({ ...form, category: e.target.value })}
-          />
+            <div>
+              <label className="block text-sm text-gray-300 mb-1">Weight (gr)</label>
+              <input type="number" className="w-full bg-gray-900 px-3 py-2 rounded border border-gray-700 focus:border-cyan-400 transition"
+                value={form.weight}
+                onChange={e => setForm({ ...form, weight: Number(e.target.value) })}
+              />
+            </div>
+          </div>
 
-          <label>Internal Reference</label>
-          <input className="w-full bg-gray-800 px-3 py-2 rounded"
-            value={form.internalReference}
-            onChange={e => setForm({ ...form, internalReference: e.target.value })}
-          />
+          <div className="grid grid-cols-2 gap-5">
+            <div>
+              <label className="block text-sm text-gray-300 mb-1">Kategori</label>
+              <input className="w-full bg-gray-900 px-3 py-2 rounded border border-gray-700 focus:border-cyan-400 transition"
+                value={form.category}
+                onChange={e => setForm({ ...form, category: e.target.value })}
+              />
+            </div>
 
-          <label>Weight</label>
-          <input type="number" className="w-full bg-gray-800 px-3 py-2 rounded"
-            value={form.weight}
-            onChange={e => setForm({ ...form, weight: Number(e.target.value) })}
-          />
+            <div>
+              <label className="block text-sm text-gray-300 mb-1">Internal Reference</label>
+              <input className="w-full bg-gray-900 px-3 py-2 rounded border border-gray-700 focus:border-cyan-400 transition"
+                value={form.internalReference}
+                onChange={e => setForm({ ...form, internalReference: e.target.value })}
+              />
+            </div>
+          </div>
 
         </div>
 
         {/* IMAGE UPLOADER */}
-        <div className="w-48 flex flex-col items-center">
-          <div className="w-36 h-36 rounded-xl bg-slate-800 border border-slate-600 flex items-center justify-center overflow-hidden">
+        <div className="col-span-1 flex flex-col items-center gap-3">
+
+          <div className="w-40 h-40 rounded-xl bg-gray-900 border border-gray-700 flex items-center justify-center overflow-hidden shadow-lg">
             {imagePreview ? (
               <img src={imagePreview} className="w-full h-full object-cover" />
             ) : (
-              <span className="text-slate-500 text-sm">No Image</span>
+              <span className="text-gray-500 text-sm">No Image</span>
             )}
           </div>
 
@@ -126,16 +140,16 @@ export default function CreateMaterial() {
             onChange={onImageChange}
           />
 
-          <button type="button" className="mt-3 px-4 py-1 rounded bg-cyan-500 text-slate-900" onClick={triggerFile}>
+          <button type="button"
+            className="mt-1 px-4 py-2 rounded bg-cyan-500 text-black hover:bg-cyan-400 transition"
+            onClick={triggerFile}>
             Upload
           </button>
 
           {imagePreview && (
-            <button
-              type="button"
-              className="mt-2 px-4 py-1 rounded bg-slate-700 text-cyan-200 border border-slate-600"
-              onClick={() => { setImageFile(null); setImagePreview(null) }}
-            >
+            <button type="button"
+              className="px-4 py-2 rounded bg-gray-800 text-gray-200 border border-gray-600 hover:bg-gray-700 transition"
+              onClick={() => { setImageFile(null); setImagePreview(null) }}>
               Remove
             </button>
           )}
@@ -143,11 +157,11 @@ export default function CreateMaterial() {
 
       </form>
 
-      <form onSubmit={handleSubmit}>
-        <button className="mt-8 bg-teal-600 px-4 py-2 rounded" type="submit">
+      <div className="mt-10 flex justify-end">
+        <button className="bg-gradient-to-r from-cyan-500 to-blue-600 px-6 py-2 rounded-lg shadow hover:scale-105 transition transform" type="submit" onClick={(e) => document.querySelector('form')?.dispatchEvent(new Event('submit', {cancelable:true, bubbles:true}))}>
           Submit
         </button>
-      </form>
+      </div>
     </div>
   )
 }

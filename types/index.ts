@@ -12,7 +12,15 @@ export interface Product {
   name: string;
   type?: string;
   salePrice?: number;
+  cost?: number;
+  category?: string;
   internalReference?: string;
+  image?: string;
+}
+
+export interface Manufacturing {
+  id?: number;
+  order_number?: string; 
 }
 
 export interface QuotationItem {
