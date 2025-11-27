@@ -11,8 +11,8 @@ export interface Product {
   id?: number;
   name: string;
   type?: string;
-  stock?: number;
-  sale_price?: number;
+  salePrice?: number;
+  internalReference?: string;
 }
 
 export interface QuotationItem {

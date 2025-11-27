@@ -6,19 +6,49 @@ import { Product } from '../../types';
 
 export default async function ProductsPage() {
   let products: Product[] = [];
-  try { products = await apiGet<Product[]>('/inventory'); } catch (e) { products = []; }
 
-  const columns = ['Name', 'Type', 'Stock'];
-  const data = products.map(p => ({ name: p.name, type: p.type ?? '', stock: p.stock ?? 0 }));
+  try { 
+    products = await apiGet<Product[]>('/inventory/products'); 
+  } catch (e) { 
+    products = []; 
+  }
+
+  const columns = ['Name', 'Type', 'Price', 'Reference'];
+
+  const data = products.map(p => ({
+    name: p.name,
+    type: p.type ?? '',
+    price: p.salePrice ?? 0,
+    reference: p.internalReference ?? ''
+
+  }));
 
   return (
     <section>
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-2xl font-bold">Products</h1>
-        <Link href="/products/create" className="px-3 py-2 bg-green-600 text-white rounded">+ Add</Link>
+
+        <div className="flex gap-2">
+          <Link
+            href="/products/create-product"
+            className="px-3 py-2 bg-green-600 text-white rounded"
+          >
+            + Add Products
+          </Link>
+          <Link
+            href="/products/create-material"
+            className="px-3 py-2 bg-green-600 text-white rounded"
+          >
+            + Add Materials
+          </Link>
+        </div>
       </div>
 
-      {products.length === 0 ? <LoadingSkeleton /> : <Table columns={columns} data={data} />}
+      {products.length === 0 ? (
+        <LoadingSkeleton />
+      ) : (
+        <Table columns={columns} data={data} />
+      )}
     </section>
-  )
+  );
 }
