@@ -43,3 +43,9 @@ export interface Quotation {
   total?: number;
   status?: string;
 }
+export interface ManufacturingMaterial {
+  id?: string;
+  productId?: number;
+  product?: Product;
+  reference?: string;
+}
