@@ -18,10 +18,16 @@ export interface Product {
   image?: string;
 }
 
-export interface Manufacturing {
+export interface ManufacturingOrder {
   id?: number;
-  order_number?: string; 
+  moNumber?: string;
+  productId?: number;
+  reference?: string;
+  quantityToProduce?: number;
+  status?: string;
+  product?: Product;
 }
+
 
 export interface QuotationItem {
   product_id: number;
@@ -48,4 +54,11 @@ export interface ManufacturingMaterial {
   productId?: number;
   product?: Product;
   reference?: string;
+}
+export interface Vendor {
+  id: number;
+  vendorName: string;
+  address: string;
+  email: string;
+  image?: string;
 }

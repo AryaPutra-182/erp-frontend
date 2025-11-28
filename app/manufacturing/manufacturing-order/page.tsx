@@ -97,7 +97,9 @@ export default function ManufacturingOrder() {
 
     const data2 = await res2.json()
 
-    push("✔ Material dikurangi dari stok dan MO masuk database")
+    push("Berhasil memproduksi manufacturing order", "success")
+    
+    router.push("/manufacturing/mo-list")
 
   }
 
@@ -297,13 +299,13 @@ export default function ManufacturingOrder() {
                 </td>
 
                 <td className="p-2 border border-gray-700 text-center">
-                  <span className="text-gray-200">{row.qty}</span>
+                  <span className="text-gray-200">{row.qty.toFixed(2)}</span>
                 </td>
 
                 {moReference && (
                   <>
                     <td className="p-2 border border-gray-700 text-center text-gray-200">
-                      {row.qty}
+                      {row.qty.toFixed(2)}
                     </td>
 
                     <td className="p-2 border border-gray-700 text-center">

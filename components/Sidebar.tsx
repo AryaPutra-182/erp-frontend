@@ -9,6 +9,7 @@ const menu = [
   { name: 'Customers', href: '/customers' },
   { name: 'Products', href: '/products' },
   { name: 'Manufacturing', href: '/manufacturing' },
+  { name: 'Purchasing', href: '/purchasing' },
   { name: 'Quotations', href: '/quotations' },
   { name: 'Sales Orders', href: '/sales-orders' },
   { name: 'Delivery Orders', href: '/delivery-orders' },

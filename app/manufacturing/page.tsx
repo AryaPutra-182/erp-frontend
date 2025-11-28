@@ -35,12 +35,21 @@ export default async function ManufacturingPage() {
         <h1 className="text-xl font-semibold text-cyan-300">
           Bills Of Materials
         </h1>
-        <Link
-          href="/manufacturing/create"
-          className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition"
-        >
-          + Create
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/manufacturing/mo-list"
+            className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition"
+          >
+            Manufacturing Order
+          </Link>
+
+          <Link
+            href="/manufacturing/create"
+            className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition"
+          >
+            + Create
+          </Link>
+        </div>
       </div>
 
       {uniqueRows.length === 0 ? (
@@ -60,14 +69,14 @@ export default async function ManufacturingPage() {
             </thead>
             <tbody>
               {uniqueRows.map((m, idx) => (
-                <tr 
-                  key={idx} 
+                <tr
+                  key={idx}
                   className={`border-b border-gray-300 hover:bg-gray-100 transition ${
                     idx % 2 === 0 ? "bg-white" : "bg-gray-50"
                   }`}
                 >
                   <td className="p-3 text-gray-900 font-medium">
-                    <Link 
+                    <Link
                       href={`/manufacturing/manufacturing-order?ref=${m.reference}`}
                       className="block w-full"
                     >
@@ -75,7 +84,7 @@ export default async function ManufacturingPage() {
                     </Link>
                   </td>
                   <td className="p-3 text-gray-800">
-                    <Link 
+                    <Link
                       href={`/manufacturing/manufacturing-order?ref=${m.reference}`}
                       className="block w-full"
                     >
