@@ -1,9 +1,9 @@
 export interface Customer {
   id?: number;
   name: string;
-  company_name?: string;
+  companyName?: string;
   email?: string;
-  phone_number?: string;
+  phoneNumber?: string;
   status?: string;
 }
 
@@ -61,4 +61,10 @@ export interface Vendor {
   address: string;
   email: string;
   image?: string;
+}
+export interface RFQ {
+  id: number
+  rfqNumber: string
+  vendorName: string
+  total: string
 }

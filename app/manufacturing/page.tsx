@@ -30,11 +30,10 @@ export default async function ManufacturingPage() {
   const uniqueRows: ManufacturingRow[] = Object.values(grouped);
 
   return (
-    <section className="p-4 text-gray-900">
+    <section>
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-xl font-semibold text-cyan-300">
-          Bills Of Materials
-        </h1>
+         <h1 className="text-2xl font-bold text-white-300">Bills Of Material</h1>
+      
         <div className="flex items-center gap-2">
           <Link
             href="/manufacturing/mo-list"

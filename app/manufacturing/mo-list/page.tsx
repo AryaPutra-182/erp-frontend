@@ -23,11 +23,9 @@ export default async function ManufacturingList() {
   }
 
   return (
-    <section className="p-4 text-gray-900">
+    <section>
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-xl font-semibold text-cyan-300">
-          Manufacturing Orders
-        </h1>
+         <h1 className="text-2xl font-bold text-white-300">Manufacturing Order</h1>
       </div>
 
       {manufacturing.length === 0 ? (

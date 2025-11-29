@@ -8,8 +8,10 @@ import { Customer } from '../../types';
 export default async function CustomersPage({ searchParams }: { searchParams?: any }) {
   const page = Number(searchParams?.page || 1);
   const q = searchParams?.q || '';
+
   let customers: Customer[] = [];
   let total = 0;
+
   try {
     const res = await apiGet<{ rows: Customer[]; count: number }>(`/customers?page=${page}&q=${encodeURIComponent(q)}`);
     customers = res.rows || res;
@@ -19,8 +21,14 @@ export default async function CustomersPage({ searchParams }: { searchParams?: a
     total = 0;
   }
 
-  const columns = ['Name', 'Email', 'Phone'];
-  const data = customers.map(c => ({ name: c.name, email: c.email ?? '', phone: c.phone_number ?? '' }));
+  const columns = ['Name', 'Email', 'Company', 'Phone'];
+
+  const data = customers.map(c => ({
+    name: c.name,
+    email: c.email ?? '',
+    company: c.companyName ?? c.companyName ?? '',
+    phone: c.phoneNumber ?? ''
+  }));
 
   return (
     <section>
@@ -33,18 +41,30 @@ export default async function CustomersPage({ searchParams }: { searchParams?: a
 
       <div className="mb-4">
         <form action="/customers" method="get" className="flex gap-2">
-          <input name="q" defaultValue={q} placeholder="Search..." className="px-3 py-2 border rounded" />
-          <button type="submit" className="px-3 py-2 bg-gray-800 text-white rounded">Search</button>
+          <input
+            name="q"
+            defaultValue={q}
+            placeholder="Search..."
+            className="px-3 py-2 border rounded bg-white text-black"
+          />
+          <button
+            type="submit"
+            className="px-3 py-2 bg-gray-800 text-white rounded"
+          >
+            Search
+          </button>
         </form>
       </div>
 
-      {customers.length === 0 ? <LoadingSkeleton /> : <Table columns={columns} data={data} />}
+      {customers.length === 0
+        ? <LoadingSkeleton />
+        : <Table columns={columns} data={data} />
+      }
 
       <div className="mt-4 flex justify-between items-center">
-       <Pagination page={page} total={total} baseUrl="/customers" />
-
+        <Pagination page={page} total={total} baseUrl="/customers" />
         <div>Total: {total}</div>
       </div>
     </section>
-  )
+  );
 }

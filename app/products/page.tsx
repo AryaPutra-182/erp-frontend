@@ -23,7 +23,7 @@ export default async function ProductsPage() {
 
       {/* HEADER */}
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Items</h1>
+        <h1 className="text-2xl font-bold">Inventory</h1>
 
         <div className="flex gap-2">
           <Link

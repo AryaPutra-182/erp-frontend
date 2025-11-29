@@ -11,7 +11,6 @@ export default function CreateCustomerPage() {
 
   const fileRef = useRef<HTMLInputElement | null>(null);
 
-  // STATE FORM SESUAI SCHEMA
   const [form, setForm] = useState({
     name: "",
     customerInfo: "",
@@ -25,9 +24,6 @@ export default function CreateCustomerPage() {
 
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
-
-  const [loading, setLoading] = useState(false);
-  const [tab, setTab] = useState<"contact" | "sales" | "invoicing">("contact");
 
   const triggerFile = () => fileRef.current?.click();
 
@@ -46,9 +42,7 @@ export default function CreateCustomerPage() {
     }
 
     try {
-      setLoading(true);
 
-      // MULTIPART POST (WITH PHOTO)
       const fd = new FormData();
       fd.append("name", form.name);
       fd.append("customerInfo", form.customerInfo);
@@ -58,10 +52,9 @@ export default function CreateCustomerPage() {
       fd.append("phoneNumber", form.phoneNumber);
       fd.append("jobPosition", form.jobPosition);
       fd.append("status", form.status);
-
       if (imageFile) fd.append("imageProfile", imageFile);
 
-      const API = (globalThis as any).process?.env?.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+      const API = "http://localhost:5000/api";
 
       const res = await fetch(`${API}/customers`, {
         method: "POST",
@@ -74,46 +67,44 @@ export default function CreateCustomerPage() {
       router.push("/customers");
     } catch (err: any) {
       push("Failed to create customer: " + err.message, "error");
-    } finally {
-      setLoading(false);
     }
   };
 
   return (
     <div className="min-h-[80vh]">
-      {/* --- HEADER BUTTONS --- */}
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-cyan-300 font-semibold text-xl">Sales</h2>
+      
+      {/* HEADER */}
+     
+      <div className="flex justify-between items-center mb-6">
+         <h2 className="text-2xl font-bold text-white-300">Sales</h2>
 
-        <div className="flex gap-3">
-          <button className="px-5 py-1 rounded-full bg-slate-800 text-cyan-200 border border-slate-700">
-            Discard
-          </button>
-
-          <button
-            onClick={() => document.querySelector("form")?.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }))}
-            className="px-5 py-1 rounded-full bg-cyan-500 text-slate-900 font-bold"
-          >
-            Save
-          </button>
-
-          <button className="px-5 py-1 rounded-full bg-slate-800 text-cyan-200 border border-slate-700">
-            Edit
-          </button>
-        </div>
+        <button
+          onClick={() =>
+            document.querySelector("form")?.dispatchEvent(
+              new Event("submit", { bubbles: true, cancelable: true })
+            )
+          }
+          className="px-5 py-2 rounded-full bg-cyan-500 text-slate-900 font-bold hover:bg-cyan-400 transition"
+        >
+          Save
+        </button>
       </div>
 
-      <form onSubmit={handleSubmit} className="max-w-3xl">
-        {/* --- MAIN CARD --- */}
-        <div className="bg-slate-900 p-6 rounded-2xl shadow-xl border border-slate-700">
-          <h3 className="text-cyan-200 font-semibold mb-4">New Customer</h3>
+      {/* UBAH LEBAR DI SINI */}
+      <form onSubmit={handleSubmit} className="max-w-5xl mx-auto">
 
-          <div className="flex gap-6">
+        {/* UBAH LEBAR CARD DI SINI */}
+        <div className="bg-slate-900 p-7 rounded-2xl shadow-xl border border-slate-800 max-w-5xl mx-auto">
 
-            {/* LEFT SIDE FORM */}
-            <div className="flex-1 grid grid-cols-1 gap-3">
+          <h3 className="text-cyan-200 font-semibold mb-5 border-b border-slate-800 pb-2 text-lg">
+            Tambah Customer Baru
+          </h3>
 
-              {/* NAME */}
+          <div className="flex gap-8">
+
+            {/* LEFT FORM */}
+            <div className="flex-1 grid grid-cols-1 gap-4">
+
               <div>
                 <label className="text-sm text-slate-300">Customer Name</label>
                 <input
@@ -124,19 +115,17 @@ export default function CreateCustomerPage() {
                 />
               </div>
 
-              {/* CUSTOMER INFO */}
               <div>
                 <label className="text-sm text-slate-300">Customer Info</label>
                 <textarea
                   className="w-full mt-1 px-3 py-3 rounded bg-slate-800 border border-slate-700 text-slate-100"
                   rows={2}
-                  placeholder="Additional customer information..."
+                  placeholder="Customer details..."
                   value={form.customerInfo}
                   onChange={(e) => setForm({ ...form, customerInfo: e.target.value })}
-                ></textarea>
+                />
               </div>
 
-              {/* COMPANY NAME */}
               <div>
                 <label className="text-sm text-slate-300">Company Name</label>
                 <input
@@ -147,7 +136,6 @@ export default function CreateCustomerPage() {
                 />
               </div>
 
-              {/* COMPANY ADDRESS */}
               <div>
                 <label className="text-sm text-slate-300">Company Address</label>
                 <textarea
@@ -156,10 +144,9 @@ export default function CreateCustomerPage() {
                   placeholder="Company address"
                   value={form.companyAddress}
                   onChange={(e) => setForm({ ...form, companyAddress: e.target.value })}
-                ></textarea>
+                />
               </div>
 
-              {/* PHONE + EMAIL */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-sm text-slate-300">Phone Number</label>
@@ -167,7 +154,9 @@ export default function CreateCustomerPage() {
                     className="w-full mt-1 px-3 py-3 rounded bg-slate-800 border border-slate-700 text-slate-100"
                     placeholder="0812..."
                     value={form.phoneNumber}
-                    onChange={(e) => setForm({ ...form, phoneNumber: e.target.value })}
+                    onChange={(e) =>
+                      setForm({ ...form, phoneNumber: e.target.value })
+                    }
                   />
                 </div>
 
@@ -177,12 +166,13 @@ export default function CreateCustomerPage() {
                     className="w-full mt-1 px-3 py-3 rounded bg-slate-800 border border-slate-700 text-slate-100"
                     placeholder="email@example.com"
                     value={form.email}
-                    onChange={(e) => setForm({ ...form, email: e.target.value })}
+                    onChange={(e) =>
+                      setForm({ ...form, email: e.target.value })
+                    }
                   />
                 </div>
               </div>
 
-              {/* JOB POSITION */}
               <div>
                 <label className="text-sm text-slate-300">Job Position</label>
                 <input
@@ -193,7 +183,6 @@ export default function CreateCustomerPage() {
                 />
               </div>
 
-              {/* STATUS */}
               <div>
                 <label className="text-sm text-slate-300">Status</label>
                 <select
@@ -205,12 +194,11 @@ export default function CreateCustomerPage() {
                   <option>Archived</option>
                 </select>
               </div>
-
             </div>
 
-            {/* RIGHT SIDE - IMAGE UPLOAD */}
+            {/* IMAGE SIDE */}
             <div className="w-48 flex flex-col items-center">
-              <div className="w-36 h-36 rounded-xl bg-slate-800 border border-slate-600 flex items-center justify-center overflow-hidden">
+              <div className="w-36 h-36 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center overflow-hidden shadow-lg">
                 {imagePreview ? (
                   <img src={imagePreview} className="w-full h-full object-cover" />
                 ) : (
@@ -222,7 +210,7 @@ export default function CreateCustomerPage() {
 
               <button
                 type="button"
-                className="mt-3 px-4 py-1 rounded bg-cyan-500 text-slate-900"
+                className="mt-3 px-4 py-2 rounded bg-cyan-500 text-slate-900 font-semibold hover:bg-cyan-400 transition"
                 onClick={triggerFile}
               >
                 Upload
@@ -231,7 +219,7 @@ export default function CreateCustomerPage() {
               {imagePreview && (
                 <button
                   type="button"
-                  className="mt-2 px-4 py-1 rounded bg-slate-700 text-cyan-200 border border-slate-600"
+                  className="mt-2 px-4 py-2 rounded bg-slate-800 text-cyan-200 border border-slate-700 hover:bg-slate-700 transition"
                   onClick={() => {
                     setImageFile(null);
                     setImagePreview(null);
@@ -240,30 +228,6 @@ export default function CreateCustomerPage() {
                   Remove
                 </button>
               )}
-            </div>
-          </div>
-
-          {/* --- TABS (Optional UI, kept for design) --- */}
-          <div className="mt-6 pt-4 border-t border-slate-700">
-            <div className="flex gap-3">
-              <button type="button" onClick={() => setTab("contact")}
-                className={`px-4 py-1 rounded-full ${tab === "contact" ? "bg-cyan-600 text-slate-900" : "bg-slate-800 text-cyan-200"}`}>
-                Contact & Address
-              </button>
-
-              <button type="button" onClick={() => setTab("sales")}
-                className={`px-4 py-1 rounded-full ${tab === "sales" ? "bg-cyan-600 text-slate-900" : "bg-slate-800 text-cyan-200"}`}>
-                Sales & Purchase
-              </button>
-
-              <button type="button" onClick={() => setTab("invoicing")}
-                className={`px-4 py-1 rounded-full ${tab === "invoicing" ? "bg-cyan-600 text-slate-900" : "bg-slate-800 text-cyan-200"}`}>
-                Invoicing
-              </button>
-            </div>
-
-            <div className="text-slate-400 mt-4 text-sm">
-              (Optional section – placeholder sesuai UI desain Anda)
             </div>
           </div>
 
