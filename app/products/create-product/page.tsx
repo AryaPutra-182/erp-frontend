@@ -61,7 +61,7 @@ export default function CreateProduct() {
 
   return (
     <div className="bg-[#0D1117] text-white p-8 rounded-xl shadow-xl border border-gray-800 max-w-5xl mx-auto">
-      <h2 className="text-2xl font-bold mb-6 text-cyan-400">Tambah Produk Baru</h2>
+      <h2 className="text-2xl font-bold mb-6 text-cyan-400">New Product</h2>
 
       <form onSubmit={handleSubmit} className="grid grid-cols-3 gap-10">
 

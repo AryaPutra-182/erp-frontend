@@ -164,7 +164,7 @@ export default function ManufacturingOrder() {
   return (
     <div className="bg-gray-900 text-white p-6 rounded-xl shadow-lg max-w-4xl mx-auto border border-gray-700">
 
-      <h2 className="text-3xl font-bold text-cyan-300">Manufacturing Order</h2>
+      <h2 className="text-3xl font-bold text-cyan-300">New Manufacturing Order</h2>
 
       {moReference && (
         <div className="mt-2 mb-2 text-2xl font-semibold text-white">

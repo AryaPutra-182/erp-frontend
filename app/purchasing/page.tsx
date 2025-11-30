@@ -45,9 +45,8 @@ export default async function PurchasingPage() {
                   }`}
                 >
                   <td className="p-3 font-semibold text-black">
-                    <Link href={`/purchasing/create-rfq?ref=${r.rfqNumber}`} className="block w-full">
+                    
                       {r.rfqNumber}
-                    </Link>
                   </td>
 
                   <td className="p-3 text-black">

@@ -62,7 +62,7 @@ export default function CreateManufacturing() {
   return (
     <div className="bg-gray-900 text-white p-6 rounded-xl shadow-lg max-w-4xl mx-auto border border-gray-700">
 
-      <h1 className="text-3xl font-bold mb-6 text-cyan-300">Manufacturing Order</h1>
+      <h1 className="text-3xl font-bold mb-6 text-cyan-300">New Bills Of Material</h1>
 
       <div className="grid grid-cols-2 gap-6">
 

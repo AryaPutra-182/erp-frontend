@@ -62,7 +62,7 @@ export default function CreateRFQ() {
       const res = await fetch("http://localhost:5000/api/purchase/next-rfq-number")
       const data = await res.json()
       setRfqNumber(data.number)
-      push("Nomor RFQ berhasil di-generate", "success")
+      push("Berhasil Disimpan", "success")
     } catch(e) {
       push("Gagal generate nomor RFQ", "error")
     }
@@ -110,7 +110,7 @@ export default function CreateRFQ() {
   return (
     <div className="bg-gray-900 text-white p-6 rounded-xl shadow-lg max-w-4xl mx-auto border border-gray-700">
 
-      <h1 className="text-3xl font-bold text-cyan-300 mb-3 text-left">Request Of Quotation</h1>
+      <h1 className="text-3xl font-bold text-cyan-300 mb-3 text-left">New Request Of Quotation</h1>
 
       <div className="flex justify-between mb-6">
 
