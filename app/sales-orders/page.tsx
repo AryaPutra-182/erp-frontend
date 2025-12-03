@@ -1,28 +1,60 @@
-import { apiGet } from '../lib/api';
-import LoadingSkeleton from '../../components/LoadingSkeleton';
-import Link from 'next/link';
+"use client";
+import Link from "next/link";
+import { useEffect, useState } from "react";
 
-export default async function SalesOrdersPage() {
-  let items = [];
-  try { items = await apiGet('/sales'); } catch (e) { items = []; }
+export default function SalesOrderPage() {
+  const [orders, setOrders] = useState([]);
+
+  useEffect(() => {
+    fetch("http://localhost:5000/api/sales")
+      .then(res => res.json())
+      .then(setOrders)
+      .catch(() => setOrders([]));
+  }, []);
 
   return (
-    <section>
-      <div className="flex justify-between items-center mb-4">
+    <section className="text-white">
+      <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Sales Orders</h1>
-        <Link href="/sales-orders/create" className="px-3 py-2 bg-green-600 text-white rounded">+ Create</Link>
+
+        <Link
+          href="/sales-orders/create"
+          className="px-3 py-2 bg-green-600 rounded text-white hover:bg-green-700"
+        >
+          + Create Sales Order
+        </Link>
       </div>
 
-      {items.length === 0 ? <LoadingSkeleton /> : (
-        <div className="space-y-3">
-          {items.map((s:any)=>(
-            <div key={s.id} className="p-4 bg-white rounded shadow flex justify-between">
-              <div>{s.so_number ?? '—'}</div>
-              <div>{s.status}</div>
-            </div>
+      <table className="w-full border border-gray-700">
+        <thead className="bg-gray-800">
+          <tr>
+            <th className="p-2">SO Number</th>
+            <th className="p-2">Customer</th>
+            <th className="p-2">Total</th>
+            <th className="p-2">Status</th>
+            <th className="p-2">Actions</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {orders.map((o: any) => (
+            <tr key={o.id} className="border-b border-gray-700">
+              <td className="p-2">{o.soNumber}</td>
+              <td className="p-2">{o.Customer?.name}</td>
+              <td className="p-2 text-cyan-400">Rp {o.grandTotal}</td>
+              <td className="p-2">{o.status}</td>
+              <td className="p-2">
+                <Link
+                  href={`/sales-orders/${o.id}`}
+                  className="text-blue-400 underline"
+                >
+                  View
+                </Link>
+              </td>
+            </tr>
           ))}
-        </div>
-      )}
+        </tbody>
+      </table>
     </section>
-  )
+  );
 }
