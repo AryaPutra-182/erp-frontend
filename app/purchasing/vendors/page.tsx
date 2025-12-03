@@ -31,7 +31,7 @@ export default async function VendorsPage() {
         {vendors.map(v => (
           <div 
             key={v.id}
-            className="bg-white rounded-xl shadow p-3 border hover:shadow-lg transition flex items-center gap-3 w-[260px]"
+            className=" bg-slate-900 rounded-xl shadow p-3 border hover:shadow-lg transition flex items-center gap-3 w-[260px]"
           >
 
             <img
@@ -44,13 +44,13 @@ export default async function VendorsPage() {
             />
 
             <div className="flex flex-col">
-              <div className="font-semibold text-gray-900 text-sm">
+              <div className="font-bold text-cyan-300 text-sm">
                 {v.vendorName}
               </div>
-              <div className="text-gray-600 text-xs">
+              <div className="text-cyan-300 text-xs">
                 {v.address}
               </div>
-              <div className="text-gray-600 text-xs">
+              <div className="text-cyan-300 text-xs">
                 {v.email}
               </div>
             </div>
