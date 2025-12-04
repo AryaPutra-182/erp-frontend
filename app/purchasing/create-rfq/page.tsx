@@ -1,306 +1,182 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { apiGet } from '../../lib/api'
-import { Vendor } from '../../../types'
-import { useToast } from '../../../components/ToastProvider'
 import { useRouter } from 'next/navigation'
 
-export default function CreateRFQ() {
+export default function CreatePurchase() {
+  const [vendors, setVendors] = useState<any[]>([])
+  const [materials, setMaterials] = useState<any[]>([])
+  
+  const [form, setForm] = useState({
+    vendorId: "",
+    expectedDate: "",
+  })
 
-  const [vendors, setVendors] = useState<Vendor[]>([])
-  const [products, setProducts] = useState<any[]>([])
-
-  const [vendorId, setVendorId] = useState(0)
-  const [orderDeadline, setOrderDeadline] = useState("")
-  const [vendorReference, setVendorReference] = useState('')
-  const [expectedArrival, setExpectedArrival] = useState('')
-  const [components, setComponents] = useState<{ productId: number, qty: number, price: number }[]>([])
-  const [statusRFQ, setStatusRFQ] = useState<'RFQ'|'RFQ Sent'|'Purchase Order'>('RFQ')
-  const [rfqNumber, setRfqNumber] = useState("")
-
+  const [items, setItems] = useState<{ materialId: string, qty: number, price: number }[]>([])
+  const [loading, setLoading] = useState(false)
   const router = useRouter()
-  const { push } = useToast()
 
-  function formatDateTime() {
-    const d = new Date()
-    const pad = (n: number) => n < 10 ? "0" + n : n
-    return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
-  }
-
-  function formatNumber(num: number) {
-    return num.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-  }
+  // Format Rupiah
+  const fmt = (n: number) => new Intl.NumberFormat("id-ID").format(n);
 
   useEffect(() => {
-    apiGet<any[]>('/vendor').then(setVendors)
-    apiGet<any[]>('/inventory/products').then(setProducts)
-    setOrderDeadline(formatDateTime())
+    // Load Vendor & Material
+    Promise.all([
+        fetch('http://localhost:5000/api/vendor').then(r => r.json()), // Pastikan route vendor ada
+        fetch('http://localhost:5000/api/materials').then(r => r.json())
+    ]).then(([v, m]) => {
+        setVendors(v || [])
+        setMaterials(m || [])
+    })
   }, [])
 
-  const addProductLine = () => {
-    setComponents([...components, { productId: 0, qty: 1.00, price: 0 }])
-  }
-
-  const availableProducts = (comp: { productId: number }[], current?: number) => {
-    return products.filter(p => p.id === current || !comp.map(x => x.productId).includes(p.id))
-  }
-
-  const selectProduct = (i: number, value: number) => {
-    const arr = [...components]
-    arr[i].productId = value
-    setComponents(arr)
-
-    if (value !== 0 && expectedArrival === "") {
-      setExpectedArrival(orderDeadline)
+  const addItem = () => setItems([...items, { materialId: "", qty: 1, price: 0 }])
+  
+  const updateItem = (idx: number, field: string, val: any) => {
+    const newItems = [...items] as any
+    newItems[idx][field] = val
+    
+    // Auto fill price jika material dipilih
+    if(field === 'materialId') {
+        const mat = materials.find(m => m.id == val)
+        if(mat) newItems[idx].price = mat.cost || 0
     }
+    setItems(newItems)
   }
-
-  const totalAmount = components.reduce((sum, item) => sum + (item.qty * item.price), 0)
 
   const handleSave = async () => {
-    try {
-      const res = await fetch("http://localhost:5000/api/purchase/next-rfq-number")
-      const data = await res.json()
-      setRfqNumber(data.number)
-      push("Berhasil Disimpan", "success")
-    } catch(e) {
-      push("Gagal generate nomor RFQ", "error")
-    }
-  }
-
-  const handleConfirm = async () => {
-    setStatusRFQ("Purchase Order")
-
-    const payload = {
-      rfqNumber,
-      vendorId,
-      orderDeadline,
-      vendorReference,
-      expectedArrival,
-      components: components.map(c => ({
-        productId: c.productId,
-        qty: c.qty,
-        price: c.price,
-        amount: c.qty * c.price
-      })),
-      status: "Purchase Order"
-    }
+    if(!form.vendorId) return alert("Pilih Vendor dulu!")
+    
+    setLoading(true)
+    const payload = { ...form, items }
 
     try {
-      await fetch("http://localhost:5000/api/purchase/create-rfq", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      })
-      push("Status berubah menjadi Purchase Order", "success")
+        const res = await fetch("http://localhost:5000/api/purchasing", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+        })
+        if(res.ok) {
+            alert("✅ Purchase Order Created!")
+            router.push("/purchasing") // Arahkan ke list PO
+        }
     } catch(e) {
-      push("RFQ gagal disimpan", "error")
+        alert("Error connection")
+    } finally {
+        setLoading(false)
     }
   }
 
-  const handlePrint = () => {
-    window.print()
-    setStatusRFQ("RFQ Sent")
-  }
-
-  const handleCancel = () => {
-    router.push("/purchasing")
-  }
+  const grandTotal = items.reduce((acc, i) => acc + (i.qty * i.price), 0)
 
   return (
-    <div className="bg-gray-900 text-white p-6 rounded-xl shadow-lg max-w-4xl mx-auto border border-gray-700">
-
-      <h1 className="text-3xl font-bold text-cyan-300 mb-3 text-left">New Request Of Quotation</h1>
-
-      <div className="flex justify-between mb-6">
-
-        <div className="flex gap-2">
-          
-          {!rfqNumber && statusRFQ === "RFQ" && (
-            <button className="px-3 py-1 bg-green-600 rounded text-sm hover:bg-green-500" onClick={handleSave}>
-              Save
-            </button>
-          )}
-
-          {statusRFQ === "RFQ" && (
-            <button className="px-3 py-1 bg-green-600 rounded text-sm hover:bg-green-500" onClick={handlePrint}>
-              Print RFQ
-            </button>
-          )}
-
-          {statusRFQ === "RFQ Sent" && (
-            <button className="px-3 py-1 bg-green-600 rounded text-sm hover:bg-green-500" onClick={handleConfirm}>
-              Confirm Order
-            </button>
-          )}
-
-          <button className="px-3 py-1 bg-green-600 rounded text-sm hover:bg-green-500" onClick={handleCancel}>
-            Kembali</button>
-
+    <section className="min-h-screen bg-[#0D1117] text-gray-200 p-8 flex justify-center">
+      <div className="w-full max-w-5xl bg-[#161b22] border border-gray-800 rounded-2xl shadow-xl">
+        
+        {/* HEADER */}
+        <div className="p-6 border-b border-gray-800 flex justify-between items-center">
+            <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+                🛒 New Purchase Order
+            </h1>
+            <div className="text-right">
+                <p className="text-xs text-gray-500 uppercase">Total Estimasi</p>
+                <p className="text-xl font-mono font-bold text-emerald-400">Rp {fmt(grandTotal)}</p>
+            </div>
         </div>
 
-        <div className="flex gap-2">
-
-          <div className={`px-3 py-1 rounded border text-xs ${statusRFQ === "RFQ" ? "bg-cyan-300 text-black border-cyan-300" : "bg-gray-800 text-gray-400 border-gray-600"}`}>
-            RFQ
-          </div>
-
-          <div className={`px-3 py-1 rounded border text-xs ${statusRFQ === "RFQ Sent" ? "bg-cyan-300 text-black border-cyan-300" : "bg-gray-800 text-gray-400 border-gray-600"}`}>
-            RFQ Sent
-          </div>
-
-          <div className={`px-3 py-1 rounded border text-xs ${statusRFQ === "Purchase Order" ? "bg-cyan-300 text-black border-cyan-300" : "bg-gray-800 text-gray-400 border-gray-600"}`}>
-            Purchase Order
-          </div>
-          
-        </div>
-
-      </div>
-
-      {rfqNumber && (
-        <div className="text-2xl font-semibold text-white mb-4 text-left">
-          {rfqNumber}
-        </div>
-      )}
-
-      <div className="grid grid-cols-2 gap-6">
-
-        <div>
-          <label className="block text-gray-300 text-sm">Vendor</label>
-          <select
-            value={vendorId}
-            onChange={e => setVendorId(Number(e.target.value))}
-            className="w-full bg-gray-800 border border-gray-600 px-3 py-2 rounded"
-          >
-            <option value={0}>Pilih Vendor</option>
-            {vendors.map(v => (
-              <option key={v.id} value={v.id}>{v.vendorName}</option>
-            ))}
-          </select>
-        </div>
-
-        <div>
-          <label className="block text-gray-300 text-sm">Order Deadline</label>
-          <input
-            type="text"
-            value={orderDeadline}
-            onChange={e => setOrderDeadline(e.target.value)}
-            className="w-full bg-gray-800 border border-gray-600 px-3 py-2 rounded"
-          />
-        </div>
-
-        <div>
-          <label className="block text-gray-300 text-sm">Vendor Reference</label>
-          <input
-            value={vendorReference}
-            onChange={e => setVendorReference(e.target.value)}
-            className="w-full bg-gray-800 border border-gray-600 px-3 py-2 rounded"
-          />
-        </div>
-
-        <div>
-          <label className="block text-gray-300 text-sm">Expected Arrival</label>
-          <input
-            type="text"
-            value={expectedArrival}
-            readOnly
-            className="w-full bg-gray-800 border border-gray-600 px-3 py-2 rounded"
-          />
-        </div>
-      </div>
-
-      <div className="mt-10">
-        <label className="block text-gray-300 text-sm mb-2">Products</label>
-        <table className="w-full border-collapse text-sm">
-          <thead className="bg-gray-800 border border-gray-700">
-            <tr>
-              <th className="p-2 border border-gray-700 text-left text-gray-300">Product</th>
-              <th className="p-2 border border-gray-700 text-center text-gray-300">Quantity</th>
-              <th className="p-2 border border-gray-700 text-center text-gray-300">Unit Price</th>
-              <th className="p-2 border border-gray-700 text-center text-gray-300">Amount</th>
-              <th className="p-2 border border-gray-700 w-16 text-center"></th>
-            </tr>
-          </thead>
-
-          <tbody>
-            {components.map((row, i) => (
-              <tr key={i}>
-                <td className="p-2 border border-gray-700">
-                  <select
-                    value={row.productId}
-                    onChange={e => selectProduct(i, Number(e.target.value))}
-                    className="w-full bg-gray-800 border border-gray-600 px-2 py-1 rounded"
-                  >
-                    <option value={0}>Pilih Produk</option>
-                    {availableProducts(components, row.productId).map(p => (
-                      <option key={p.id} value={p.id}>{p.name}</option>
-                    ))}
-                  </select>
-                </td>
-
-                <td className="p-2 border border-gray-700 text-center">
-                  {row.productId !== 0 && (
-                    <input
-                      type="text"
-                      value={row.qty.toFixed(2)}
-                      onChange={e => {
-                        const arr = [...components]
-                        arr[i].qty = Number(e.target.value)
-                        setComponents(arr)
-                      }}
-                      className="w-20 bg-gray-800 border border-gray-600 px-2 py-1 rounded text-left"
+        <div className="p-8 space-y-6">
+            {/* FORM ATAS */}
+            <div className="grid grid-cols-2 gap-6">
+                <div>
+                    <label className="text-xs font-bold text-gray-500 uppercase mb-2 block">Vendor</label>
+                    <select 
+                        className="w-full bg-[#0D1117] border border-gray-700 p-3 rounded-lg text-white outline-none focus:border-blue-500"
+                        onChange={e => setForm({...form, vendorId: e.target.value})}
+                    >
+                        <option value="">-- Select Vendor --</option>
+                        {vendors.map(v => <option key={v.id} value={v.id}>{v.vendorName}</option>)}
+                    </select>
+                </div>
+                <div>
+                    <label className="text-xs font-bold text-gray-500 uppercase mb-2 block">Expected Arrival</label>
+                    <input 
+                        type="date" 
+                        className="w-full bg-[#0D1117] border border-gray-700 p-3 rounded-lg text-white outline-none focus:border-blue-500"
+                        onChange={e => setForm({...form, expectedDate: e.target.value})}
                     />
-                  )}
-                </td>
+                </div>
+            </div>
 
-                <td className="p-2 border border-gray-700 text-center">
-                  {row.productId !== 0 && (
-                    <input
-                      type="text"
-                      value={formatNumber(row.price)}
-                      onChange={e => {
-                        const arr = [...components]
-                        arr[i].price = Number(e.target.value.replace(/,/g, ""))
-                        setComponents(arr)
-                      }}
-                      className="w-24 bg-gray-800 border border-gray-600 px-2 py-1 rounded text-left"
-                    />
-                  )}
-                </td>
+            {/* TABEL ITEM */}
+            <div>
+                <table className="w-full text-sm text-left">
+                    <thead className="bg-gray-800 text-gray-400 uppercase font-bold text-xs">
+                        <tr>
+                            <th className="p-3">Material</th>
+                            <th className="p-3 w-32 text-center">Qty</th>
+                            <th className="p-3 w-40 text-right">Price</th>
+                            <th className="p-3 w-40 text-right">Subtotal</th>
+                            <th className="p-3 w-10"></th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-800">
+                        {items.map((item, i) => (
+                            <tr key={i} className="hover:bg-gray-800/30">
+                                <td className="p-3">
+                                    <select 
+                                        className="w-full bg-transparent border-none text-white outline-none"
+                                        value={item.materialId}
+                                        onChange={e => updateItem(i, 'materialId', e.target.value)}
+                                    >
+                                        <option value="" className="bg-gray-900">Pilih Material...</option>
+                                        {materials.map(m => (
+                                            <option key={m.id} value={m.id} className="bg-gray-900">{m.name}</option>
+                                        ))}
+                                    </select>
+                                </td>
+                                <td className="p-3">
+                                    <input 
+                                        type="number" className="w-full bg-gray-900 border border-gray-700 rounded p-1 text-center text-white"
+                                        value={item.qty}
+                                        onChange={e => updateItem(i, 'qty', Number(e.target.value))}
+                                    />
+                                </td>
+                                <td className="p-3">
+                                    <input 
+                                        type="number" className="w-full bg-gray-900 border border-gray-700 rounded p-1 text-right text-white"
+                                        value={item.price}
+                                        onChange={e => updateItem(i, 'price', Number(e.target.value))}
+                                    />
+                                </td>
+                                <td className="p-3 text-right font-mono text-emerald-400">
+                                    {fmt(item.qty * item.price)}
+                                </td>
+                                <td className="p-3 text-center">
+                                    <button onClick={() => {
+                                        const newI = items.filter((_, idx) => idx !== i)
+                                        setItems(newI)
+                                    }} className="text-red-500 hover:text-red-400">✕</button>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+                <button onClick={addItem} className="mt-3 text-xs font-bold text-blue-400 hover:text-blue-300 uppercase">+ Add Line</button>
+            </div>
 
-                <td className="p-2 border border-gray-700 text-center text-green-400 font-semibold">
-                  {formatNumber(row.qty * row.price)}
-                </td>
+            {/* FOOTER */}
+            <div className="pt-6 border-t border-gray-800 flex justify-end gap-3">
+                <button className="px-6 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-700">Discard</button>
+                <button 
+                    onClick={handleSave} 
+                    disabled={loading}
+                    className="px-6 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-500 shadow-lg shadow-emerald-900/20"
+                >
+                    {loading ? "Saving..." : "Confirm Order"}
+                </button>
+            </div>
 
-                <td className="p-2 border border-gray-700 text-center">
-                  <button
-                    type="button"
-                    onClick={() => setComponents(components.filter((_, idx) => idx !== i))}
-                    className="text-red-400 hover:text-red-300"
-                  >
-                    ✕
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-
-        <button
-          type="button"
-          onClick={addProductLine}
-          className="mt-4 px-4 py-2 bg-purple-600 rounded hover:bg-purple-500"
-        >
-          + Add Line
-        </button>
-
-        <div className="flex justify-end mt-6">
-          <div className="text-right text-sm font-semibold text-white pr-1">
-            Total: {formatNumber(totalAmount)}
-          </div>
         </div>
       </div>
-
-    </div>
+    </section>
   )
 }

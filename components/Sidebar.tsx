@@ -8,13 +8,13 @@ import { ChevronDown, ChevronRight } from 'lucide-react';
 
 const menu = [
   { name: 'Dashboard', href: '/' },
+  { name: 'Inventory', href: '/inventory' },
   { name: 'Customers', href: '/customers' },
    {
     name: 'Manufacturing',
     children: [
       { name: 'Product', href: '/products' },
-      { name: 'BOM', href: '/manufacturing/create' },
-      { name: 'Manufacturing Order', href: '/manufacturing/mo-list' },
+      { name: 'Manufacturing Order', href: '/manufacturing' },
     ],
   },
   { name: 'Purchasing', href: '/purchasing' },

@@ -80,7 +80,7 @@ export default async function ProductsPage() {
             <div className="w-full h-40 bg-gray-800 rounded flex items-center justify-center overflow-hidden">
               {m.image ? (
                 <img
-                  src={`http://localhost:5000/${m.image}`}
+                  src={`http://localhost:5000/uploads/${m.image.replace(/\\/g, "/")}`}
                   className="w-full h-full object-cover"
                 />
               ) : (
