@@ -52,7 +52,7 @@ export default async function PurchasingPage() {
               <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-500"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
               <h1 className="text-3xl font-bold text-white tracking-tight">Purchasing</h1>
            </div>
-           <p className="text-gray-400 text-sm ml-11">Manage RFQs, Purchase Orders, and Vendor Bills.</p>
+           <p className="text-gray-400 text-sm ml-11">Purchase Orders and Vendor Bills.</p>
         </div>
 
         <div className="flex items-center gap-3">

@@ -1,29 +1,259 @@
+'use client'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { apiGet } from './lib/api' // Sesuaikan path lib/api
 
-export default function Dashboard() {
+// GANTI DENGAN URL BACKEND KAMU
+const API_BASE_URL = "http://localhost:5000";
+
+export default function DashboardPage() {
+  const [stats, setStats] = useState({
+    totalProducts: 0,
+    totalMaterials: 0,
+    totalValue: 0,
+    lowStockCount: 0
+  })
+  const [lowStockItems, setLowStockItems] = useState<any[]>([])
+  const [recentItems, setRecentItems] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+
+  // Helper Format Rupiah
+  const formatRupiah = (num: number) => {
+    return new Intl.NumberFormat("id-ID", {
+      style: "currency",
+      currency: "IDR",
+      maximumFractionDigits: 0,
+    }).format(num || 0);
+  }
+
+  const getImageUrl = (item: any, type: 'product' | 'material') => {
+    if (!item.image) return null;
+    const cleanPath = item.image.replace(/\\/g, "/");
+    return type === 'material' 
+      ? `${API_BASE_URL}/uploads/${cleanPath}` 
+      : `${API_BASE_URL}/${cleanPath}`;
+  }
+
+  useEffect(() => {
+    const loadDashboardData = async () => {
+      try {
+        setLoading(true)
+        const [products, materials] = await Promise.all([
+            apiGet<any[]>('/inventory/products'),
+            apiGet<any[]>('/materials')
+        ])
+
+        const allProducts = products || [];
+        const allMaterials = materials || [];
+        
+        // 1. Hitung Total Value (Asumsi: Product * SalePrice + Material * Cost)
+        const prodValue = allProducts.reduce((acc, curr) => acc + (Number(curr.quantity) * Number(curr.salePrice)), 0);
+        const matValue = allMaterials.reduce((acc, curr) => acc + (Number(curr.weight) * Number(curr.cost)), 0); // Asumsi cost per gram/unit
+
+        // 2. Cari Low Stock (Misal di bawah 10 unit)
+        const lowStockProd = allProducts.filter(p => Number(p.quantity) < 10).map(p => ({...p, category: 'Product'}));
+        const lowStockMat = allMaterials.filter(m => Number(m.weight) < 500).map(m => ({...m, category: 'Material'})); // Misal material < 500gr warning
+        const combinedLowStock = [...lowStockProd, ...lowStockMat];
+
+        // 3. Gabungkan Recent Items (Ambil 5 teratas, asumsi data sort by created desc dari backend, atau kita slice aja)
+        const combinedRecent = [...allProducts.slice(0, 3), ...allMaterials.slice(0, 2)];
+
+        setStats({
+          totalProducts: allProducts.length,
+          totalMaterials: allMaterials.length,
+          totalValue: prodValue + matValue,
+          lowStockCount: combinedLowStock.length
+        })
+
+        setLowStockItems(combinedLowStock.slice(0, 5)); // Tampilkan 5 warning teratas
+        setRecentItems(combinedRecent);
+
+      } catch (e) {
+        console.error("Dashboard Load Error", e)
+      } finally {
+        setLoading(false)
+      }
+    }
+    loadDashboardData()
+  }, [])
+
   return (
-    <section>
-      <h1 className="text-3xl font-bold mb-4">Dashboard</h1>
-
-      <div className="grid grid-cols-3 gap-4">
-        <div className="p-4 bg-white rounded shadow">
-          <h2 className="font-semibold">Sales</h2>
-          <p className="text-3xl">Rp 0</p>
+    <section className="min-h-screen bg-[#0D1117] text-gray-200 p-6 md:p-10 font-sans">
+      
+      {/* HEADER */}
+      <div className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-white tracking-tight flex items-center gap-3">
+            <span className="bg-purple-600/20 text-purple-400 p-2 rounded-lg">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+            </span>
+            Dashboard Overview
+          </h1>
+          <p className="text-gray-400 text-sm mt-1 ml-12">
+            Welcome back! Here is what’s happening with your inventory today.
+          </p>
         </div>
-
-        <div className="p-4 bg-white rounded shadow">
-          <h2 className="font-semibold">Invoices Unpaid</h2>
-          <p className="text-3xl">0</p>
-        </div>
-
-        <div className="p-4 bg-white rounded shadow">
-          <h2 className="font-semibold">Stock Low</h2>
-          <p className="text-3xl">0</p>
+        <div className="text-sm text-gray-500 bg-[#161b22] px-4 py-2 rounded-full border border-gray-800">
+           {new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
         </div>
       </div>
 
-      <div className="mt-6">
-        <Link href="/customers" className="px-3 py-2 bg-blue-600 text-white rounded">Manage Customers</Link>
+      {/* STATS CARDS GRID */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        {/* Card 1: Total Products */}
+        <div className="bg-[#161b22] border border-gray-800 p-6 rounded-2xl relative overflow-hidden group hover:border-blue-500/50 transition-all">
+          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+            <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+          </div>
+          <p className="text-gray-400 text-sm font-medium uppercase tracking-wider">Total Products</p>
+          <h3 className="text-3xl font-bold text-white mt-2">{loading ? "..." : stats.totalProducts}</h3>
+          <p className="text-xs text-blue-400 mt-2 flex items-center gap-1">
+             <span className="w-2 h-2 rounded-full bg-blue-400 inline-block"></span> Finished Products
+          </p>
+        </div>
+
+        {/* Card 2: Total Materials */}
+        <div className="bg-[#161b22] border border-gray-800 p-6 rounded-2xl relative overflow-hidden group hover:border-purple-500/50 transition-all">
+          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+            <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3v19"/><path d="M5 10h14"/><path d="M5 15h14"/></svg>
+          </div>
+          <p className="text-gray-400 text-sm font-medium uppercase tracking-wider">Raw Materials</p>
+          <h3 className="text-3xl font-bold text-white mt-2">{loading ? "..." : stats.totalMaterials}</h3>
+          <p className="text-xs text-purple-400 mt-2 flex items-center gap-1">
+             <span className="w-2 h-2 rounded-full bg-purple-400 inline-block"></span> Components
+          </p>
+        </div>
+
+       
+
+        {/* Card 4: Low Stock Alert */}
+        <div className="bg-gradient-to-br from-[#161b22] to-red-900/10 border border-gray-800 p-6 rounded-2xl relative overflow-hidden group hover:border-red-500/50 transition-all">
+          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity text-red-500">
+             <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          </div>
+          <p className="text-gray-400 text-sm font-medium uppercase tracking-wider">Attention Needed</p>
+          <h3 className="text-3xl font-bold text-white mt-2">{loading ? "..." : stats.lowStockCount}</h3>
+          <p className="text-xs text-red-400 mt-2 flex items-center gap-1">
+             <span className="w-2 h-2 rounded-full bg-red-400 inline-block"></span> Low Stock Items
+          </p>
+        </div>
+      </div>
+
+      {/* CONTENT SPLIT */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
+        {/* LEFT COLUMN: QUICK ACTIONS & LOW STOCK */}
+        <div className="lg:col-span-2 space-y-8">
+            
+            {/* Quick Actions */}
+            <div className="bg-[#161b22] border border-gray-800 rounded-2xl p-6">
+                <h3 className="text-lg font-bold text-white mb-4">Quick Actions</h3>
+                <div className="flex flex-wrap gap-4">
+                    <Link href="/products/create-product" className="flex-1 min-w-[150px] bg-blue-600/10 hover:bg-blue-600/20 border border-blue-600/30 text-blue-400 hover:text-blue-300 py-4 px-4 rounded-xl flex flex-col items-center justify-center gap-2 transition-all group">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="group-hover:scale-110 transition-transform"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                        <span className="font-semibold text-sm">Add Product</span>
+                    </Link>
+                    <Link href="/products/create-material" className="flex-1 min-w-[150px] bg-purple-600/10 hover:bg-purple-600/20 border border-purple-600/30 text-purple-400 hover:text-purple-300 py-4 px-4 rounded-xl flex flex-col items-center justify-center gap-2 transition-all group">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="group-hover:scale-110 transition-transform"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+                        <span className="font-semibold text-sm">Add Material</span>
+                    </Link>
+                    <Link href="/inventory" className="flex-1 min-w-[150px] bg-gray-800/50 hover:bg-gray-700/50 border border-gray-700 text-gray-300 py-4 px-4 rounded-xl flex flex-col items-center justify-center gap-2 transition-all group">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="group-hover:scale-110 transition-transform"><path d="M9 18l6-6-6-6"/></svg>
+                        <span className="font-semibold text-sm">View Inventory</span>
+                    </Link>
+                </div>
+            </div>
+
+            {/* Recent Items List */}
+            <div className="bg-[#161b22] border border-gray-800 rounded-2xl p-6">
+                <div className="flex justify-between items-center mb-6">
+                    <h3 className="text-lg font-bold text-white">Recently Added</h3>
+                    <Link href="/inventory" className="text-xs text-purple-400 hover:text-purple-300">View All</Link>
+                </div>
+                
+                <div className="space-y-4">
+                    {loading ? (
+                        <div className="animate-pulse space-y-3">
+                           {[1,2,3].map(i => <div key={i} className="h-16 bg-gray-800 rounded-lg"></div>)}
+                        </div>
+                    ) : recentItems.length === 0 ? (
+                        <p className="text-gray-500 text-center py-4">No recent items.</p>
+                    ) : (
+                        recentItems.map((item, idx) => (
+                            <div key={idx} className="flex items-center justify-between p-3 bg-gray-900/50 border border-gray-800/50 rounded-xl hover:border-gray-700 transition-colors">
+                                <div className="flex items-center gap-4">
+                                    <div className="w-12 h-12 bg-gray-800 rounded-lg overflow-hidden flex-shrink-0">
+                                        {item.image ? (
+                                           <img 
+                                              src={getImageUrl(item, item.weight ? 'material' : 'product') || ""} 
+                                              alt={item.name} 
+                                              className="w-full h-full object-cover"
+                                              onError={(e) => (e.target as HTMLImageElement).style.display = 'none'}
+                                           />
+                                        ) : (
+                                            <div className="w-full h-full flex items-center justify-center text-gray-600">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/></svg>
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div>
+                                        <h4 className="text-white font-medium text-sm">{item.name}</h4>
+                                        <p className="text-gray-500 text-xs">{item.internalReference || "No Ref"}</p>
+                                    </div>
+                                </div>
+                                <div className="text-right">
+                                    <p className="text-white font-bold text-sm">
+                                        {item.weight ? `${item.weight} gr` : `${item.quantity} units`}
+                                    </p>
+                                    <p className="text-xs text-gray-500">Stock</p>
+                                </div>
+                            </div>
+                        ))
+                    )}
+                </div>
+            </div>
+        </div>
+
+        {/* RIGHT COLUMN: ALERTS */}
+        <div className="space-y-8">
+             {/* Low Stock Warning */}
+             <div className="bg-[#161b22] border border-red-900/30 rounded-2xl p-6 h-full">
+                <div className="flex items-center gap-2 mb-6 text-red-400">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                    <h3 className="text-lg font-bold">Low Stock Alert</h3>
+                </div>
+
+                <div className="space-y-3">
+                    {loading ? (
+                         <div className="animate-pulse space-y-2">
+                            {[1,2,3].map(i => <div key={i} className="h-10 bg-gray-800 rounded"></div>)}
+                         </div>
+                    ) : lowStockItems.length === 0 ? (
+                        <div className="text-center py-10">
+                            <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-emerald-500/10 text-emerald-500 mb-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                            </div>
+                            <p className="text-gray-400 text-sm">All stock levels are healthy!</p>
+                        </div>
+                    ) : (
+                        lowStockItems.map((item, idx) => (
+                            <div key={idx} className="bg-red-900/10 border border-red-900/30 p-3 rounded-lg flex justify-between items-center">
+                                <div>
+                                    <p className="text-red-200 text-sm font-medium line-clamp-1">{item.name}</p>
+                                    <p className="text-red-400/60 text-xs">{item.category}</p>
+                                </div>
+                                <span className="bg-red-500 text-white text-xs font-bold px-2 py-1 rounded">
+                                    {item.weight ? item.weight : item.quantity} left
+                                </span>
+                            </div>
+                        ))
+                    )}
+                </div>
+                
+          
+             </div>
+        </div>
+
       </div>
     </section>
   )

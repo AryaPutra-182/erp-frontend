@@ -11,14 +11,18 @@ export const metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className="bg-slate-950 text-white flex">
-        <ToastProvider>
-          <Sidebar />
-          <main className="flex-1 p-6 overflow-auto">
+      <body>
+        {/* Sidebar Fixed */}
+        <Sidebar /> 
+        
+        {/* === PERBAIKAN DI SINI: Tambahkan margin kiri (ml-64) === */}
+        <div className="ml-64 transition-all duration-300"> 
+          <main className="min-h-screen bg-[#0D1117]"> 
             {children}
           </main>
-        </ToastProvider>
+        </div>
+        
       </body>
     </html>
-  )
+  );
 }

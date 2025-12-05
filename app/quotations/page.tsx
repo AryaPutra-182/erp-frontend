@@ -54,9 +54,7 @@ export default function QuotationsPage() {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Quotations</h1>
-          <p className="text-gray-400 text-sm mt-1">
-            Manage your sales quotations and customer orders.
-          </p>
+          
         </div>
         
         <Link
