@@ -1,4 +1,3 @@
-
 import './globals.css'
 import Sidebar from '../components/Sidebar'
 import ToastProvider from '../components/ToastProvider'
@@ -12,15 +11,20 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body>
-        {/* Sidebar Fixed */}
-        <Sidebar /> 
+        {/* === PERBAIKAN: Pasang ToastProvider di sini === */}
+        <ToastProvider>
         
-        {/* === PERBAIKAN DI SINI: Tambahkan margin kiri (ml-64) === */}
-        <div className="ml-64 transition-all duration-300"> 
-          <main className="min-h-screen bg-[#0D1117]"> 
-            {children}
-          </main>
-        </div>
+            {/* Sidebar Fixed */}
+            <Sidebar /> 
+            
+            <div className="ml-64 transition-all duration-300"> 
+              <main className="min-h-screen bg-[#0D1117]"> 
+                {children}
+              </main>
+            </div>
+
+        </ToastProvider>
+        {/* === Jangan lupa tutup tag ToastProvider === */}
         
       </body>
     </html>

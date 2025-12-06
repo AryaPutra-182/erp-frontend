@@ -1,26 +1,27 @@
 import Link from 'next/link';
 import { apiGet } from '../../lib/api';
 import { Vendor } from '../../../types';
+// 👇 Import komponen tombol hapus
+import DeleteVendorButton from '../../../components/DeleteVendorButton'; 
 
 export default async function VendorsPage() {
-  // --- LOGIKA CODING TETAP SAMA ---
+  
   let vendors: Vendor[] = [];
 
   try { 
+    // Sesuaikan URL jika backend pakai /api
+    // Misal: await apiGet<Vendor[]>('/api/vendor');
     vendors = await apiGet<Vendor[]>('/vendor'); 
   } catch (e) { 
     vendors = []; 
   }
-  // --------------------------------
 
   return (
-    <section className="p-6 max-w-7xl mx-auto min-h-screen">
+    <section className="p-6 max-w-7xl mx-auto min-h-screen bg-[#0D1117]">
 
       {/* HEADER SECTION */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4 border-b border-gray-800 pb-6">
-        
         <div className="space-y-1">
-          {/* 1. TOMBOL KEMBALI (Navigasi) */}
           <Link 
             href="/purchasing" 
             className="inline-flex items-center text-gray-400 hover:text-white transition text-sm mb-2 group"
@@ -28,9 +29,7 @@ export default async function VendorsPage() {
             <span className="mr-1 group-hover:-translate-x-1 transition-transform">←</span> 
             Back
           </Link>
-          
           <h1 className="text-3xl font-bold text-white tracking-tight">Vendor Management</h1>
-          <p className="text-gray-400 text-sm">Manage suppliers and partnership contacts.</p>
         </div>
       
         <Link
@@ -41,7 +40,7 @@ export default async function VendorsPage() {
         </Link>
       </div>
 
-      {/* VENDOR GRID (Desain Baru) */}
+      {/* VENDOR GRID */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
 
         {vendors.map(v => (
@@ -49,6 +48,10 @@ export default async function VendorsPage() {
             key={v.id}
             className="group bg-[#161b22] border border-gray-800 rounded-xl p-5 hover:border-gray-600 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 flex flex-col gap-4 relative overflow-hidden"
           >
+            
+            {/* 👇 PASANG TOMBOL HAPUS DISINI */}
+            <DeleteVendorButton id={v.id} />
+
             {/* Dekorasi Background Halus */}
             <div className="absolute top-0 right-0 w-24 h-24 bg-cyan-500/5 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none group-hover:bg-cyan-500/10 transition"></div>
 
@@ -58,7 +61,6 @@ export default async function VendorsPage() {
                 <img
                   src={
                     v.image
-                      // Menambahkan replace agar aman dari backslash Windows, tapi logika path tetap sama
                       ? `http://localhost:5000/uploads/${v.image.replace(/\\/g, "/")}`
                       : "https://cdn-icons-png.flaticon.com/512/3135/3135715.png"
                   }
@@ -101,7 +103,7 @@ export default async function VendorsPage() {
           </div>
         ))}
 
-        {/* Empty State (Jika tidak ada data) */}
+        {/* Empty State */}
         {vendors.length === 0 && (
           <div className="col-span-full py-12 flex flex-col items-center justify-center text-gray-500 border border-dashed border-gray-800 rounded-xl bg-gray-900/30">
             <p className="mb-2 text-4xl">📭</p>

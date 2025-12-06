@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { apiGet } from "../lib/api";
+import DeleteEmployeeButton from "../../components/DeleteEmployeeButton"; // Pastikan path import benar
 
 export default async function EmployeesPage() {
+  // --- FETCHING DATA TETAP SAMA ---
   let employees: any[] = [];
 
   try {
@@ -9,6 +11,7 @@ export default async function EmployeesPage() {
   } catch {
     employees = [];
   }
+  // --------------------------------
 
   return (
     <section className="min-h-screen bg-[#0D1117] text-gray-200 p-6 md:p-10">
@@ -20,31 +23,15 @@ export default async function EmployeesPage() {
             <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-500"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
             Employee Directory
           </h1>
-          
         </div>
 
         <div className="flex flex-wrap gap-3">
-          <Link
-            href="/employees/create"
-            className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-medium rounded-lg transition-all shadow-lg shadow-emerald-900/20"
-          >
+          <Link href="/employees/create" className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-medium rounded-lg transition-all shadow-lg shadow-emerald-900/20">
             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
             Add Employee
           </Link>
-
-          <Link
-            href="/employees/departments/create-department"
-            className="flex items-center gap-2 px-4 py-2 bg-[#21262d] hover:bg-[#30363d] text-gray-300 hover:text-white border border-gray-700 rounded-lg transition-all"
-          >
-            + Dept
-          </Link>
-
-          <Link
-            href="/employees/positions/create-position"
-            className="flex items-center gap-2 px-4 py-2 bg-[#21262d] hover:bg-[#30363d] text-gray-300 hover:text-white border border-gray-700 rounded-lg transition-all"
-          >
-            + Position
-          </Link>
+          <Link href="/employees/departments/create-department" className="flex items-center gap-2 px-4 py-2 bg-[#21262d] hover:bg-[#30363d] text-gray-300 hover:text-white border border-gray-700 rounded-lg transition-all">+ Dept</Link>
+          <Link href="/employees/positions/create-position" className="flex items-center gap-2 px-4 py-2 bg-[#21262d] hover:bg-[#30363d] text-gray-300 hover:text-white border border-gray-700 rounded-lg transition-all">+ Position</Link>
         </div>
       </div>
 
@@ -63,10 +50,16 @@ export default async function EmployeesPage() {
           // ----------------------------------------------
 
           return (
-            <div
-              key={i}
-              className="group relative bg-[#161b22] border border-gray-800 rounded-2xl overflow-hidden hover:border-gray-600 hover:shadow-2xl hover:shadow-black/50 transition-all duration-300 hover:-translate-y-1"
+            // WRAP DENGAN LINK AGAR BISA LIHAT DETAIL (/employees/[id])
+            <Link 
+                href={`/employees/${emp.id}`} 
+                key={i}
+                className="group relative bg-[#161b22] border border-gray-800 rounded-2xl overflow-hidden hover:border-gray-600 hover:shadow-2xl hover:shadow-black/50 transition-all duration-300 hover:-translate-y-1 block"
             >
+              
+              {/* === TOMBOL DELETE (Client Component) === */}
+              <DeleteEmployeeButton id={emp.id} />
+
               {/* HEADER GAMBAR / AVATAR */}
               <div className="h-48 overflow-hidden relative bg-gray-800">
                 {photoUrl ? (
@@ -76,23 +69,17 @@ export default async function EmployeesPage() {
                       alt={emp.name}
                       className="w-full h-full object-cover object-top group-hover:scale-110 transition duration-500 ease-in-out"
                     />
-                    {/* Gradient Overlay biar teks putih lebih jelas terbaca jika ada */}
                     <div className="absolute inset-0 bg-gradient-to-t from-[#161b22] via-transparent to-transparent opacity-60"></div>
                   </>
                 ) : (
                   <div className="w-full h-full flex flex-col items-center justify-center bg-gray-800 text-gray-600 group-hover:bg-gray-700 transition">
-                     <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                   </div>
                 )}
               </div>
 
               {/* INFO BODY */}
               <div className="p-5 relative">
-                {/* Floating Avatar (Optional, kalau mau gaya LinkedIn) */}
-                {/* <div className="-mt-12 mb-3">
-                   <div className="w-16 h-16 rounded-full border-4 border-[#161b22] bg-gray-700 overflow-hidden">...</div>
-                </div> */}
-
                 <div className="mb-1">
                     <h2 className="text-xl font-bold text-white group-hover:text-blue-400 transition-colors truncate" title={emp.name}>
                         {emp.name}
@@ -120,16 +107,14 @@ export default async function EmployeesPage() {
                     </div>
                 </div>
                 
-                {/* Decorative Bottom Bar */}
                 <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-blue-600 to-emerald-600 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left"></div>
               </div>
 
-            </div>
+            </Link>
           );
         })}
       </div>
 
-      {/* EMPTY STATE */}
       {employees.length === 0 && (
           <div className="text-center py-20 bg-[#161b22] border border-gray-800 border-dashed rounded-xl mt-6">
               <div className="bg-gray-800/50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
