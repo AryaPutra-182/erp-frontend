@@ -28,6 +28,25 @@ export default function ManufacturingOrderProcess({ params }: any) {
   const [loading, setLoading] = useState(true)
   const [processing, setProcessing] = useState(false)
 
+  // --- POPUP STATE (ALERT/CONFIRM REPLACEMENT) ---
+  const [popup, setPopup] = useState<{
+    show: boolean;
+    type: 'error' | 'success' | 'confirm' | 'info';
+    title?: string;
+    message: string;
+    onConfirm?: (() => void) | null;
+  }>({
+    show: false,
+    type: 'info',
+    title: undefined,
+    message: '',
+    onConfirm: null
+  });
+
+  const showError = (message: string) => setPopup({ show: true, type: 'error', title: 'Error', message, onConfirm: null });
+  const showSuccess = (message: string) => setPopup({ show: true, type: 'success', title: 'Success', message, onConfirm: null });
+  const showConfirm = (message: string, onConfirm: () => void) => setPopup({ show: true, type: 'confirm', title: undefined, message, onConfirm });
+
   // --- HELPER FORMAT ---
   const formatRupiah = (num: number) => new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(num || 0);
   const formatDate = (date: string) => date ? new Date(date).toLocaleDateString("id-ID") : "-";
@@ -127,8 +146,14 @@ export default function ManufacturingOrderProcess({ params }: any) {
 
   // --- ACTIONS ---
   const handleConfirm = async () => {
-      if(!productId) return alert("❌ Produk belum dipilih!");
-      if(components.length === 0) return alert("❌ Komponen kosong!");
+      if(!productId) {
+        showError("❌ Produk belum dipilih!");
+        return;
+      }
+      if(components.length === 0) {
+        showError("❌ Komponen kosong!");
+        return;
+      }
 
       const payload = { 
         productId: Number(productId), 
@@ -152,26 +177,36 @@ export default function ManufacturingOrderProcess({ params }: any) {
             const newId = json.data?.id || json.id;
             router.push(`/manufacturing/orders/${newId}`); 
         } else { 
-            alert("❌ Gagal: " + (json.message || json.error)); 
+            showError("❌ Gagal: " + (json.message || json.error || 'Unknown error')); 
         }
-      } catch(e) { alert("Network Error"); }
+      } catch(e) { 
+        console.error(e);
+        showError("Network Error");
+      }
       finally { setProcessing(false); }
   }
 
+  // Allocate/Produce flow: show confirm modal, then perform allocate if confirmed
   const handleProduce = async () => {
-      if(!confirm("Selesaikan Produksi? Stok akan dipotong.")) return;
-      setProcessing(true);
-      try {
-          const res = await fetch(`http://localhost:5000/api/manufacturing/allocate/${id}`, { method: 'POST' });
-          if(res.ok) { 
-              alert("✔ Produksi Selesai!"); 
-              window.location.reload(); 
-          } else {
-              const json = await res.json();
-              alert("❌ Gagal: " + json.error);
-          }
-      } catch(e) { alert("Network Error"); }
-      finally { setProcessing(false); }
+      showConfirm("Selesaikan Produksi? Stok akan dipotong.", async () => {
+        setProcessing(true);
+        try {
+            const res = await fetch(`http://localhost:5000/api/manufacturing/allocate/${id}`, { method: 'POST' });
+            if(res.ok) { 
+                showSuccess("✔ Produksi Selesai!");
+                // small delay so user sees success then reload
+                setTimeout(() => window.location.reload(), 700);
+            } else {
+                const json = await res.json();
+                showError("❌ Gagal: " + (json?.error || 'Unknown error'));
+            }
+        } catch(e) { 
+            console.error(e);
+            showError("Network Error");
+        } finally {
+            setProcessing(false);
+        }
+      });
   }
 
   // --- UI RENDER ---
@@ -344,6 +379,56 @@ export default function ManufacturingOrderProcess({ params }: any) {
         </div>
 
       </div>
+
+      {/* POPUP MODAL (ALERT / CONFIRM) - does not change UI layout */}
+      {popup.show && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          {/* Overlay */}
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setPopup(prev => ({ ...prev, show: false, onConfirm: null }))} />
+
+          {/* Card */}
+          <div className="relative bg-[#0D1117] border border-gray-700 rounded-2xl p-6 w-full max-w-md shadow-2xl mx-4">
+            {popup.title ? (
+              <h3 className={`text-lg font-semibold mb-2 ${popup.type === 'error' ? 'text-red-400' : popup.type === 'success' ? 'text-emerald-400' : 'text-white'}`}>
+                {popup.title}
+              </h3>
+            ) : null}
+
+            <p className="text-sm text-gray-300 mb-5">{popup.message}</p>
+
+            <div className="flex justify-end gap-3">
+              {popup.type === 'confirm' ? (
+                <>
+                  <button
+                    onClick={() => setPopup(prev => ({ ...prev, show: false, onConfirm: null }))}
+                    className="px-4 py-2 rounded-lg border border-gray-600 text-gray-200 hover:bg-gray-800 transition text-sm"
+                  >
+                    Tidak
+                  </button>
+                  <button
+                    onClick={() => {
+                      const fn = popup.onConfirm;
+                      setPopup(prev => ({ ...prev, show: false, onConfirm: null }));
+                      if (fn) fn();
+                    }}
+                    className="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-500 transition text-sm"
+                  >
+                    Ya, Lanjutkan
+                  </button>
+                </>
+              ) : (
+                <button
+                  onClick={() => setPopup(prev => ({ ...prev, show: false, onConfirm: null }))}
+                  className="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-500 transition text-sm"
+                >
+                  OK
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
     </section>
   )
 }
