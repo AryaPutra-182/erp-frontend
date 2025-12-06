@@ -44,7 +44,7 @@ export default function ProductsPage() {
           })
         ]);
 
-        console.log("Products Loaded:", prodRes); // Cek di Console (F12)
+        console.log("Products Loaded:", prodRes);
         setProducts(prodRes || []);
         setMaterials(matRes || []);
       } catch (e) {
@@ -60,7 +60,6 @@ export default function ProductsPage() {
   const getImageUrl = (image: string, type: ItemType) => {
     if (!image) return null;
     const cleanPath = image.replace(/\\/g, "/");
-    // Logika path sesuai backend Anda sebelumnya
     return type === 'material'
       ? `${API_BASE_URL}/uploads/${cleanPath}`
       : `${API_BASE_URL}/${cleanPath}`;
@@ -105,7 +104,6 @@ export default function ProductsPage() {
         setMaterials(prev => prev.filter(item => item.id !== confirmData.id));
       }
 
-      // Tutup modal setelah sukses
       setConfirmData(prev => ({ ...prev, open: false }));
     } catch (err) {
       console.error(err);
@@ -124,7 +122,6 @@ export default function ProductsPage() {
     }).format(value);
   }
 
-  // --- RENDER LOADING STATE (SKELETON) ---
   if (loading) return (
     <div className="p-6">
       <div className="h-8 w-48 bg-gray-800 rounded animate-pulse mb-6"></div>
@@ -163,7 +160,7 @@ export default function ProductsPage() {
         </div>
       </div>
 
-      {/* === PRODUCTS SECTION === */}
+      {/* === PRODUCTS SECTION (Tetap Bisa Diedit / Link) === */}
       <div className="mb-12">
         <div className="flex items-center gap-3 mb-6">
           <h2 className="text-xl font-bold text-white">Finished Goods</h2>
@@ -182,8 +179,7 @@ export default function ProductsPage() {
                 key={i}
                 className="group relative bg-[#161b22] border border-gray-800 rounded-xl overflow-hidden hover:border-blue-500/50 hover:shadow-xl hover:shadow-blue-900/10 transition-all duration-300 hover:-translate-y-1 block"
               >
-
-                {/* DELETE BUTTON */}
+                {/* DELETE BUTTON PRODUCT */}
                 <button
                   onClick={(e) => openConfirmDelete(e, p.id, 'product', p.name)}
                   className="absolute top-3 right-3 z-20 bg-gray-900/80 backdrop-blur text-red-400 p-2 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-red-500 hover:text-white transition-all duration-200 border border-gray-700 hover:border-red-500"
@@ -192,7 +188,6 @@ export default function ProductsPage() {
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
                 </button>
 
-                {/* IMAGE */}
                 <div className="h-48 bg-gray-900 relative overflow-hidden">
                   {p.image ? (
                     <img
@@ -210,7 +205,6 @@ export default function ProductsPage() {
                   <div className="absolute inset-0 bg-gradient-to-t from-[#161b22] to-transparent opacity-60"></div>
                 </div>
 
-                {/* CONTENT */}
                 <div className="p-5 relative">
                   <div className="flex justify-between items-start mb-2">
                     <span className="px-2 py-1 bg-blue-900/30 text-blue-400 text-[10px] font-bold uppercase tracking-wider rounded border border-blue-900/50">
@@ -218,11 +212,9 @@ export default function ProductsPage() {
                     </span>
                     <p className="text-xs font-mono text-gray-500">{p.internalReference || "N/A"}</p>
                   </div>
-
                   <h3 className="text-lg font-bold text-white mb-1 truncate group-hover:text-blue-400 transition-colors">
                     {p.name}
                   </h3>
-
                   <p className="text-emerald-400 font-bold text-sm bg-emerald-900/10 inline-block px-2 py-1 rounded mt-2 border border-emerald-900/20">
                     {formatRupiah(p.salePrice)}
                   </p>
@@ -233,7 +225,7 @@ export default function ProductsPage() {
         )}
       </div>
 
-      {/* === MATERIALS SECTION === */}
+      {/* === MATERIALS SECTION (HANYA VIEW, TIDAK BISA EDIT) === */}
       <div>
         <div className="flex items-center gap-3 mb-6">
           <h2 className="text-xl font-bold text-white">Raw Materials</h2>
@@ -247,16 +239,16 @@ export default function ProductsPage() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {materials.map((m, i) => (
-              <Link
-                href={`/materials/edit/${m.id}`}
+              // PERUBAHAN: Ganti Link dengan div agar tidak bisa diklik (tidak masuk edit)
+              <div
                 key={i}
-                className="group relative bg-[#161b22] border border-gray-800 rounded-xl overflow-hidden hover:border-purple-500/50 hover:shadow-xl hover:shadow-purple-900/10 transition-all duration-300 hover:-translate-y-1 block"
+                className="group relative bg-[#161b22] border border-gray-800 rounded-xl overflow-hidden hover:border-purple-500/50 transition-all duration-300"
               >
 
-                {/* DELETE BUTTON */}
+                {/* DELETE BUTTON (Tetap Bisa Hapus) */}
                 <button
                   onClick={(e) => openConfirmDelete(e, m.id, 'material', m.name)}
-                  className="absolute top-3 right-3 z-20 bg-gray-900/80 backdrop-blur text-red-400 p-2 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-red-500 hover:text-white transition-all duration-200 border border-gray-700 hover:border-red-500"
+                  className="absolute top-3 right-3 z-20 bg-gray-900/80 backdrop-blur text-red-400 p-2 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-red-500 hover:text-white transition-all duration-200 border border-gray-700 hover:border-red-500 cursor-pointer"
                   title="Delete Material"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
@@ -266,7 +258,7 @@ export default function ProductsPage() {
                   {m.image ? (
                     <img
                       src={getImageUrl(m.image, 'material') || ""}
-                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                       alt={m.name}
                       onError={(e) => (e.currentTarget.style.display = 'none')}
                     />
@@ -306,7 +298,7 @@ export default function ProductsPage() {
                     </div>
                   </div>
                 </div>
-              </Link>
+              </div>
             ))}
           </div>
         )}
@@ -315,13 +307,10 @@ export default function ProductsPage() {
       {/* ==== MODAL KONFIRMASI DELETE ==== */}
       {confirmData.open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
-          {/* Overlay */}
           <div
             className="absolute inset-0 bg-black/60 backdrop-blur-sm"
             onClick={() => !isDeleting && setConfirmData(prev => ({ ...prev, open: false }))}
           />
-
-          {/* Card Modal */}
           <div className="relative bg-[#0D1117] border border-gray-700 rounded-2xl p-6 w-full max-w-md shadow-2xl mx-4 animate-[fadeIn_0.2s_ease-out]">
             <h3 className="text-lg font-semibold text-white mb-2">
               {confirmData.type === 'product' ? 'Hapus Produk?' : 'Hapus Material?'}
@@ -329,7 +318,7 @@ export default function ProductsPage() {
             <p className="text-sm text-gray-300 mb-5">
               Apakah Anda yakin ingin menghapus{' '}
               <span className="font-semibold">
-                {confirmData.name || (confirmData.type === 'product' ? 'produk ini' : 'material ini')}
+                {confirmData.name}
               </span>
               ? <br />
               Tindakan ini tidak dapat dibatalkan.
