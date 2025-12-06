@@ -7,29 +7,42 @@ import { apiGet } from '../lib/api' // Pastikan path ini benar
 // GANTI DENGAN URL BACKEND KAMU
 const API_BASE_URL = "http://localhost:5000";
 
+type ItemType = 'product' | 'material';
+
 export default function ProductsPage() {
   const [products, setProducts] = useState<any[]>([]);
   const [materials, setMaterials] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // ==== STATE UNTUK MODAL DELETE ====
+  const [confirmData, setConfirmData] = useState<{
+    open: boolean;
+    id: number | null;
+    type: ItemType | null;
+    name: string;
+  }>({
+    open: false,
+    id: null,
+    type: null,
+    name: '',
+  });
+
+  const [isDeleting, setIsDeleting] = useState(false);
+
   // --- 1. Fetch Data ---
- // --- 1. Fetch Data ---
   useEffect(() => {
     const fetchData = async () => {
       try {
-       const [prodRes, matRes] = await Promise.all([
-
-  apiGet<any[]>('/inventory/products').catch((err) => {
-     console.error("Gagal load produk:", err);
-     return [];
-  }),
-  
-  apiGet<any[]>('/materials').catch((err) => {
-     console.error("Gagal load material:", err);
-     return [];
-  })
-
-]);
+        const [prodRes, matRes] = await Promise.all([
+          apiGet<any[]>('/inventory/products').catch((err) => {
+            console.error("Gagal load produk:", err);
+            return [];
+          }),
+          apiGet<any[]>('/materials').catch((err) => {
+            console.error("Gagal load material:", err);
+            return [];
+          })
+        ]);
 
         console.log("Products Loaded:", prodRes); // Cek di Console (F12)
         setProducts(prodRes || []);
@@ -44,40 +57,61 @@ export default function ProductsPage() {
   }, []);
 
   // --- 2. Helper URL Gambar ---
-  const getImageUrl = (image: string, type: 'product' | 'material') => {
+  const getImageUrl = (image: string, type: ItemType) => {
     if (!image) return null;
     const cleanPath = image.replace(/\\/g, "/");
     // Logika path sesuai backend Anda sebelumnya
-    return type === 'material' 
-      ? `${API_BASE_URL}/uploads/${cleanPath}` 
+    return type === 'material'
+      ? `${API_BASE_URL}/uploads/${cleanPath}`
       : `${API_BASE_URL}/${cleanPath}`;
   }
 
-  // --- 3. Fungsi Delete ---
-  const handleDelete = async (e: React.MouseEvent, id: number, type: 'product' | 'material') => {
-    // PENTING: Mencegah klik tombol delete memicu Link ke halaman edit
-    e.preventDefault(); 
+  // --- 3a. BUKA MODAL KONFIRMASI DELETE ---
+  const openConfirmDelete = (
+    e: React.MouseEvent,
+    id: number,
+    type: ItemType,
+    name: string
+  ) => {
+    e.preventDefault();
     e.stopPropagation();
 
-    if (!window.confirm(`Are you sure you want to delete this ${type}?`)) return;
+    setConfirmData({
+      open: true,
+      id,
+      type,
+      name,
+    });
+  };
+
+  // --- 3b. EKSEKUSI DELETE SETELAH KONFIRMASI ---
+  const handleConfirmDelete = async () => {
+    if (!confirmData.id || !confirmData.type) return;
 
     try {
-      const endpoint = type === 'product' 
-        ? `${API_BASE_URL}/api/inventory/products/${id}` 
-        : `${API_BASE_URL}/api/materials/${id}`;
+      setIsDeleting(true);
+
+      const endpoint =
+        confirmData.type === 'product'
+          ? `${API_BASE_URL}/api/inventory/products/${confirmData.id}`
+          : `${API_BASE_URL}/api/materials/${confirmData.id}`;
 
       const res = await fetch(endpoint, { method: 'DELETE' });
-
       if (!res.ok) throw new Error("Failed to delete");
 
-      if (type === 'product') {
-        setProducts(prev => prev.filter(item => item.id !== id));
+      if (confirmData.type === 'product') {
+        setProducts(prev => prev.filter(item => item.id !== confirmData.id));
       } else {
-        setMaterials(prev => prev.filter(item => item.id !== id));
+        setMaterials(prev => prev.filter(item => item.id !== confirmData.id));
       }
+
+      // Tutup modal setelah sukses
+      setConfirmData(prev => ({ ...prev, open: false }));
     } catch (err) {
       console.error(err);
       alert("Error deleting item");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -109,10 +143,10 @@ export default function ProductsPage() {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
         <div>
           <h1 className="text-3xl font-bold text-white tracking-tight flex items-center gap-3">
-             <span className="p-2 bg-gradient-to-br from-purple-600 to-blue-600 rounded-lg shadow-lg shadow-purple-900/20">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
-             </span>
-             Inventory Items
+            <span className="p-2 bg-gradient-to-br from-purple-600 to-blue-600 rounded-lg shadow-lg shadow-purple-900/20">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+            </span>
+            Inventory Items
           </h1>
           <p className="text-gray-400 text-sm mt-2 ml-1">Manage your products and raw materials.</p>
         </div>
@@ -132,27 +166,26 @@ export default function ProductsPage() {
       {/* === PRODUCTS SECTION === */}
       <div className="mb-12">
         <div className="flex items-center gap-3 mb-6">
-            <h2 className="text-xl font-bold text-white">Finished Goods</h2>
-            <span className="px-2 py-0.5 rounded-full bg-gray-800 text-xs text-gray-400 border border-gray-700">{products.length} Items</span>
+          <h2 className="text-xl font-bold text-white">Finished Goods</h2>
+          <span className="px-2 py-0.5 rounded-full bg-gray-800 text-xs text-gray-400 border border-gray-700">{products.length} Items</span>
         </div>
 
         {products.length === 0 ? (
-           <div className="text-center py-16 bg-[#161b22] border border-gray-800 border-dashed rounded-xl">
-              <p className="text-gray-500">No products found. Start by adding one.</p>
-           </div>
+          <div className="text-center py-16 bg-[#161b22] border border-gray-800 border-dashed rounded-xl">
+            <p className="text-gray-500">No products found. Start by adding one.</p>
+          </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {products.map((p, i) => (
-              // LINK WRAPPER: Klik kartu lari ke halaman edit
-              <Link 
-                href={`/products/edit/${p.id}`} 
-                key={i} 
+              <Link
+                href={`/products/edit/${p.id}`}
+                key={i}
                 className="group relative bg-[#161b22] border border-gray-800 rounded-xl overflow-hidden hover:border-blue-500/50 hover:shadow-xl hover:shadow-blue-900/10 transition-all duration-300 hover:-translate-y-1 block"
               >
-                
-                {/* DELETE BUTTON (Stop Propagation) */}
-                <button 
-                  onClick={(e) => handleDelete(e, p.id, 'product')}
+
+                {/* DELETE BUTTON */}
+                <button
+                  onClick={(e) => openConfirmDelete(e, p.id, 'product', p.name)}
                   className="absolute top-3 right-3 z-20 bg-gray-900/80 backdrop-blur text-red-400 p-2 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-red-500 hover:text-white transition-all duration-200 border border-gray-700 hover:border-red-500"
                   title="Delete Product"
                 >
@@ -170,30 +203,29 @@ export default function ProductsPage() {
                     />
                   ) : (
                     <div className="w-full h-full flex flex-col items-center justify-center text-gray-700 bg-gray-800/50">
-                       <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-                       <span className="text-xs mt-2 font-medium">No Image</span>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                      <span className="text-xs mt-2 font-medium">No Image</span>
                     </div>
                   )}
-                  {/* Overlay Gradient */}
                   <div className="absolute inset-0 bg-gradient-to-t from-[#161b22] to-transparent opacity-60"></div>
                 </div>
 
                 {/* CONTENT */}
                 <div className="p-5 relative">
-                   <div className="flex justify-between items-start mb-2">
-                      <span className="px-2 py-1 bg-blue-900/30 text-blue-400 text-[10px] font-bold uppercase tracking-wider rounded border border-blue-900/50">
-                        {p.type || "Product"}
-                      </span>
-                      <p className="text-xs font-mono text-gray-500">{p.internalReference || "N/A"}</p>
-                   </div>
-                   
-                   <h3 className="text-lg font-bold text-white mb-1 truncate group-hover:text-blue-400 transition-colors">
-                     {p.name}
-                   </h3>
-                   
-                   <p className="text-emerald-400 font-bold text-sm bg-emerald-900/10 inline-block px-2 py-1 rounded mt-2 border border-emerald-900/20">
-                     {formatRupiah(p.salePrice)}
-                   </p>
+                  <div className="flex justify-between items-start mb-2">
+                    <span className="px-2 py-1 bg-blue-900/30 text-blue-400 text-[10px] font-bold uppercase tracking-wider rounded border border-blue-900/50">
+                      {p.type || "Product"}
+                    </span>
+                    <p className="text-xs font-mono text-gray-500">{p.internalReference || "N/A"}</p>
+                  </div>
+
+                  <h3 className="text-lg font-bold text-white mb-1 truncate group-hover:text-blue-400 transition-colors">
+                    {p.name}
+                  </h3>
+
+                  <p className="text-emerald-400 font-bold text-sm bg-emerald-900/10 inline-block px-2 py-1 rounded mt-2 border border-emerald-900/20">
+                    {formatRupiah(p.salePrice)}
+                  </p>
                 </div>
               </Link>
             ))}
@@ -204,26 +236,26 @@ export default function ProductsPage() {
       {/* === MATERIALS SECTION === */}
       <div>
         <div className="flex items-center gap-3 mb-6">
-            <h2 className="text-xl font-bold text-white">Raw Materials</h2>
-            <span className="px-2 py-0.5 rounded-full bg-gray-800 text-xs text-gray-400 border border-gray-700">{materials.length} Items</span>
+          <h2 className="text-xl font-bold text-white">Raw Materials</h2>
+          <span className="px-2 py-0.5 rounded-full bg-gray-800 text-xs text-gray-400 border border-gray-700">{materials.length} Items</span>
         </div>
 
         {materials.length === 0 ? (
-           <div className="text-center py-16 bg-[#161b22] border border-gray-800 border-dashed rounded-xl">
-              <p className="text-gray-500">No materials found.</p>
-           </div>
+          <div className="text-center py-16 bg-[#161b22] border border-gray-800 border-dashed rounded-xl">
+            <p className="text-gray-500">No materials found.</p>
+          </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {materials.map((m, i) => (
-              <Link 
-                href={`/materials/edit/${m.id}`} 
-                key={i} 
+              <Link
+                href={`/materials/edit/${m.id}`}
+                key={i}
                 className="group relative bg-[#161b22] border border-gray-800 rounded-xl overflow-hidden hover:border-purple-500/50 hover:shadow-xl hover:shadow-purple-900/10 transition-all duration-300 hover:-translate-y-1 block"
               >
-                
+
                 {/* DELETE BUTTON */}
-                <button 
-                  onClick={(e) => handleDelete(e, m.id, 'material')}
+                <button
+                  onClick={(e) => openConfirmDelete(e, m.id, 'material', m.name)}
                   className="absolute top-3 right-3 z-20 bg-gray-900/80 backdrop-blur text-red-400 p-2 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-red-500 hover:text-white transition-all duration-200 border border-gray-700 hover:border-red-500"
                   title="Delete Material"
                 >
@@ -240,45 +272,91 @@ export default function ProductsPage() {
                     />
                   ) : (
                     <div className="w-full h-full flex flex-col items-center justify-center text-gray-700 bg-gray-800/50">
-                       <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
-                       <span className="text-xs mt-2 font-medium">No Image</span>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+                      <span className="text-xs mt-2 font-medium">No Image</span>
                     </div>
                   )}
-                   <div className="absolute inset-0 bg-gradient-to-t from-[#161b22] to-transparent opacity-60"></div>
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#161b22] to-transparent opacity-60"></div>
                 </div>
 
                 <div className="p-5">
-                   <div className="flex justify-between items-start mb-2">
-                      <span className="px-2 py-1 bg-purple-900/30 text-purple-400 text-[10px] font-bold uppercase tracking-wider rounded border border-purple-900/50">
-                        {m.type || "Material"}
-                      </span>
-                      <p className="text-xs font-mono text-gray-500">{m.internalReference || "N/A"}</p>
-                   </div>
+                  <div className="flex justify-between items-start mb-2">
+                    <span className="px-2 py-1 bg-purple-900/30 text-purple-400 text-[10px] font-bold uppercase tracking-wider rounded border border-purple-900/50">
+                      {m.type || "Material"}
+                    </span>
+                    <p className="text-xs font-mono text-gray-500">{m.internalReference || "N/A"}</p>
+                  </div>
 
-                   <h3 className="text-lg font-bold text-white mb-1 truncate group-hover:text-purple-400 transition-colors">
-                     {m.name}
-                   </h3>
+                  <h3 className="text-lg font-bold text-white mb-1 truncate group-hover:text-purple-400 transition-colors">
+                    {m.name}
+                  </h3>
 
-                   <div className="flex justify-between items-end mt-3">
-                     <div>
-                        <p className="text-xs text-gray-500">Cost</p>
-                        <p className="text-gray-200 font-bold text-sm">
-                           {formatRupiah(m.cost)}
-                        </p>
-                     </div>
-                     <div className="text-right">
-                        <p className="text-xs text-gray-500">Stock</p>
-                        <p className="text-gray-200 font-bold text-sm">
-                           {m.weight} gr
-                        </p>
-                     </div>
-                   </div>
+                  <div className="flex justify-between items-end mt-3">
+                    <div>
+                      <p className="text-xs text-gray-500">Cost</p>
+                      <p className="text-gray-200 font-bold text-sm">
+                        {formatRupiah(m.cost)}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xs text-gray-500">Stock</p>
+                      <p className="text-gray-200 font-bold text-sm">
+                        {m.weight} gr
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </Link>
             ))}
           </div>
         )}
       </div>
+
+      {/* ==== MODAL KONFIRMASI DELETE ==== */}
+      {confirmData.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          {/* Overlay */}
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => !isDeleting && setConfirmData(prev => ({ ...prev, open: false }))}
+          />
+
+          {/* Card Modal */}
+          <div className="relative bg-[#0D1117] border border-gray-700 rounded-2xl p-6 w-full max-w-md shadow-2xl mx-4 animate-[fadeIn_0.2s_ease-out]">
+            <h3 className="text-lg font-semibold text-white mb-2">
+              {confirmData.type === 'product' ? 'Hapus Produk?' : 'Hapus Material?'}
+            </h3>
+            <p className="text-sm text-gray-300 mb-5">
+              Apakah Anda yakin ingin menghapus{' '}
+              <span className="font-semibold">
+                {confirmData.name || (confirmData.type === 'product' ? 'produk ini' : 'material ini')}
+              </span>
+              ? <br />
+              Tindakan ini tidak dapat dibatalkan.
+            </p>
+
+            <div className="flex justify-end gap-3">
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={() => setConfirmData(prev => ({ ...prev, open: false }))}
+                className="px-4 py-2 rounded-lg border border-gray-600 text-gray-200 hover:bg-gray-800 transition text-sm disabled:opacity-60"
+              >
+                Tidak
+              </button>
+
+              <button
+                type="button"
+                onClick={handleConfirmDelete}
+                disabled={isDeleting}
+                className="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-500 disabled:opacity-60 disabled:cursor-not-allowed transition text-sm"
+              >
+                {isDeleting ? 'Menghapus...' : 'Ya, Hapus'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

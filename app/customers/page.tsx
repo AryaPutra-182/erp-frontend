@@ -8,6 +8,12 @@ import Pagination from '../../components/Pagination'
 
 const API_BASE_URL = "http://localhost:5000";
 
+type ConfirmState = {
+  open: boolean
+  id: number | null
+  name: string
+}
+
 export default function CustomersPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -16,6 +22,14 @@ export default function CustomersPage() {
   const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState(searchParams.get('q') || '')
+
+  const [confirmData, setConfirmData] = useState<ConfirmState>({
+    open: false,
+    id: null,
+    name: '',
+  })
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [errorMsg, setErrorMsg] = useState<string | null>(null)
 
   const page = Number(searchParams.get('page') || 1)
 
@@ -46,31 +60,63 @@ export default function CustomersPage() {
     fetchCustomers();
   }, [fetchCustomers]);
 
-  const handleDelete = async (id: number) => {
-    if (!confirm("Delete this customer? This action cannot be undone.")) return;
+  // --- BUKA MODAL KONFIRMASI ---
+  const openConfirmDelete = (
+    e: React.MouseEvent,
+    id: number,
+    name: string
+  ) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    setConfirmData({
+      open: true,
+      id,
+      name,
+    });
+    setErrorMsg(null);
+  };
+
+  // --- TUTUP MODAL ---
+  const closeConfirm = () => {
+    if (isDeleting) return;
+    setConfirmData(prev => ({ ...prev, open: false }));
+    setErrorMsg(null);
+  };
+
+  // --- EKSEKUSI DELETE SETELAH KONFIRMASI ---
+  const handleConfirmDelete = async () => {
+    if (!confirmData.id) return;
 
     try {
-      const res = await fetch(`${API_BASE_URL}/api/customers/${id}`, {
+      setIsDeleting(true);
+      setErrorMsg(null);
+
+      const res = await fetch(`${API_BASE_URL}/api/customers/${confirmData.id}`, {
         method: 'DELETE'
       });
 
       const result = await res.json();
 
       if (!res.ok) {
-        alert(result?.msg || "Cannot delete customer");
+        setErrorMsg(result?.msg || "Cannot delete customer");
         return;
       }
 
-      setCustomers(prev => prev.filter(c => c.id !== id));
+      // Update list & total
+      setCustomers(prev => prev.filter(c => c.id !== confirmData.id));
       setTotal(prev => prev - 1);
 
+      // Tetap pakai replace seperti semula
       router.replace(`/customers?page=${page}&q=${encodeURIComponent(searchTerm)}`);
 
-      alert("Customer deleted successfully");
-
-    } catch (error) {
+      // Tutup modal
+      setConfirmData(prev => ({ ...prev, open: false }));
+    } catch (error: any) {
       console.error(error);
-      alert("Error deleting customer");
+      setErrorMsg(error.message || "Error deleting customer");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -140,19 +186,26 @@ export default function CustomersPage() {
                   <td className="text-center text-gray-400">{c.companyName || "-"}</td>
                   <td className="text-center text-gray-400">{c.phoneNumber || "-"}</td>
 
-                  <td className="p-4 text-right flex justify-end gap-2">
-                    {/* HANYA BAGIAN INI YANG DIUBAH: Edit jadi View Detail */}
-                    <Link href={`/customers/${c.id}`} className="px-2 py-1 text-blue-400 hover:text-white" title="View Detail">
-                      👁️
-                    </Link>
-                    
-                    <button
-                      onClick={() => handleDelete(c.id)}
-                      className="px-2 py-1 text-red-400 hover:text-white"
-                      title="Delete"
-                    >
-                      🗑
-                    </button>
+               <td className="p-4 text-right">
+                    <div className="flex justify-end items-center gap-2">
+                      {/* Tetap sama: icon view detail */}
+                      <Link
+                        href={`/customers/${c.id}`}
+                        className="px-2 py-1 text-blue-400 hover:text-white"
+                        title="View Detail"
+                      >
+                        👁️
+                      </Link>
+                      
+                      {/* Delete sekarang buka modal, UI tombol tetap sama */}
+                      <button
+                        onClick={(e) => openConfirmDelete(e, c.id, c.name)}
+                        className="px-2 py-1 text-red-400 hover:text-white"
+                        title="Delete"
+                      >
+                        🗑
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -166,6 +219,58 @@ export default function CustomersPage() {
           </div>
         )}
       </div>
+
+      {/* === POPUP KONFIRMASI DELETE === */}
+      {confirmData.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+
+          {/* overlay */}
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={closeConfirm}
+          />
+
+          {/* CARD KECIL (SAMA STYLE DENGAN HALAMAN LAIN) */}
+          <div className="relative bg-[#0D1117] border border-gray-700 rounded-xl p-5 w-full max-w-sm shadow-xl mx-4">
+            <h3 className="text-lg font-semibold text-white mb-2">
+              Hapus Customer?
+            </h3>
+
+            <p className="text-sm text-gray-300 mb-4">
+              Yakin ingin menghapus{" "}
+              <span className="font-semibold text-white">
+                {confirmData.name}
+              </span>?  
+              <br />Aksi ini tidak dapat dibatalkan.
+            </p>
+
+            {errorMsg && (
+              <p className="text-xs text-red-400 mb-3">
+                {errorMsg}
+              </p>
+            )}
+
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={closeConfirm}
+                disabled={isDeleting}
+                className="px-4 py-2 rounded-lg border border-gray-600 text-gray-200 hover:bg-gray-800 text-sm disabled:opacity-60"
+              >
+                Tidak
+              </button>
+
+              <button
+                onClick={handleConfirmDelete}
+                disabled={isDeleting}
+                className="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-500 text-sm disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {isDeleting ? "Menghapus..." : "Ya, Hapus"}
+              </button>
+            </div>
+          </div>
+
+        </div>
+      )}
     </section>
   );
 }

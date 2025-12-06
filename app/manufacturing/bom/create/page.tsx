@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import { apiGet } from '../../../lib/api' 
 import { useRouter } from 'next/navigation'
 import SearchableProductSelect from '../../../../components/SearchableProductSelect';
+import { useToast } from '../../../../components/ToastProvider'   // ✅ pakai toast
 
 // Definisi Tipe Data
 interface Product { 
@@ -30,7 +31,15 @@ export default function CreateBOM() {
   const [components, setComponents] = useState<{ materialId: number, qty: number }[]>([])
   
   const [loading, setLoading] = useState(false) 
+
+  // error untuk product
+  const [productError, setProductError] = useState<string | null>(null)
+
+  // ⭐ state untuk notif "BOM berhasil disimpan"
+  const [showSuccess, setShowSuccess] = useState(false)
+
   const router = useRouter()
+  const { push } = useToast()          
 
   // --- FETCH DATA MASTER ---
   useEffect(() => {
@@ -44,10 +53,11 @@ export default function CreateBOM() {
             setMaterials(matRes || [])
         } catch (e) {
             console.error("Gagal load data master:", e)
+            push('Gagal memuat data master', 'error')
         }
     }
     loadData()
-  }, [])
+  }, [push])
 
   // --- LOGIC TABEL KOMPONEN ---
   const addMaterialLine = () => {
@@ -72,17 +82,32 @@ export default function CreateBOM() {
 
   // --- HANDLE SAVE ---
   const handleSave = async () => {
-    // 1. Validasi
-    if (!productId) return alert("❌ Harap pilih Produk target!")
-    if (quantity <= 0) return alert("❌ Jumlah per batch harus lebih dari 0")
-    if (components.length === 0) return alert("❌ Harap tambahkan minimal 1 komponen material")
+    // 1. Validasi PRODUCT TARGET
+    if (!productId) {
+      setProductError("Harap pilih produk target")
+      return
+    }
+
+    // 2. Validasi lain
+    if (quantity <= 0) {
+      push('Jumlah per batch harus lebih dari 0', 'error')
+      return
+    }
+
+    if (components.length === 0) {
+      push('Tambahkan minimal 1 komponen material', 'error')
+      return
+    }
     
     const invalidComp = components.find(c => c.materialId === 0 || c.qty <= 0);
-    if (invalidComp) return alert("❌ Ada baris komponen yang belum lengkap (Material kosong atau Qty 0)")
+    if (invalidComp) {
+      push('Ada komponen yang belum lengkap (material kosong atau qty 0)', 'error')
+      return
+    }
 
     setLoading(true)
 
-    // 2. Payload
+    // 3. Payload
     const payload = {
       productId: Number(productId),
       quantity: Number(quantity),
@@ -91,7 +116,6 @@ export default function CreateBOM() {
     }
 
     try {
-      // 3. Request
       const res = await fetch("http://localhost:5000/api/manufacturing-materials", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -104,13 +128,17 @@ export default function CreateBOM() {
           throw new Error(responseData.error || responseData.message || "Gagal menyimpan")
       }
 
-      // 4. Success
-      alert("✅ Bill of Material Berhasil Disimpan!")
-      router.push("/manufacturing/bom") 
+      // ✅ SUCCESS: tampilkan UI "BOM berhasil disimpan"
+      setShowSuccess(true)
+
+      // kasih waktu user lihat notif dulu baru redirect
+      setTimeout(() => {
+        router.push("/manufacturing/bom")
+      }, 1200)
 
     } catch (e: any) {
       console.error(e)
-      alert("❌ Error: " + e.message)
+      push(`Error: ${e.message}`, 'error')
     } finally {
         setLoading(false)
     }
@@ -166,9 +194,18 @@ export default function CreateBOM() {
                     <SearchableProductSelect
                         products={products}
                         selectedValue={productId}
-                        onChange={setProductId}
+                        onChange={(val) => {
+                          setProductId(val)
+                          if (val) setProductError(null)
+                        }}
                         disabled={false}
                     />
+                    {productError && (
+                      <p className="text-xs text-red-400 mt-2 flex items-center gap-1">
+                        <span className="inline-block w-1.5 h-1.5 rounded-full bg-red-400" />
+                        {productError}
+                      </p>
+                    )}
                 </div>
 
                 {/* Kolom 2: Quantity */}
@@ -272,6 +309,18 @@ export default function CreateBOM() {
 
         </div>
       </div>
+
+      {/* ⭐ NOTIF "BOM berhasil disimpan" DI TENGAH */}
+      {showSuccess && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          {/* optional overlay gelap */}
+          <div className="absolute inset-0 bg-black/40" />
+          
+          <div className="relative bg-emerald-600 text-white px-8 py-4 rounded-xl shadow-xl text-xl font-semibold animate-bounce">
+            BOM berhasil disimpan
+          </div>
+        </div>
+      )}
     </section>
   )
 }

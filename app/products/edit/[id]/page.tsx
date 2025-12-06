@@ -39,8 +39,13 @@ export default function EditProduct({ params }: any) {
         internalReference: data.internalReference
       })
 
+      // ================================
+      // FIX BAGIAN INI
+      // ================================
       if (data.image) {
-        setImagePreview(`http://localhost:5000/uploads/${data.image}`)
+        // jika data.image = "uploads/xxx.jpg"
+        const fixedURL = `http://localhost:5000/${data.image.replace(/^\/+/, '')}`
+        setImagePreview(fixedURL)
       }
     }
 
@@ -63,7 +68,7 @@ export default function EditProduct({ params }: any) {
     const fd = new FormData()
     Object.entries(form).forEach(([key, value]) => fd.append(key, String(value)))
     
-    // only append file if user uploaded a new one
+    // only append if new file selected
     if (imageFile) fd.append('image', imageFile)
 
     try {
