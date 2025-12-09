@@ -15,13 +15,17 @@ export default function CreatePurchase() {
   const [loading, setLoading] = useState(false)
   const router = useRouter()
 
-  // Format Rupiah
+  const [result, setResult] = useState<{open:boolean; ok:boolean; msg:string}>({
+    open:false,
+    ok:false,
+    msg:""
+  })
+
   const fmt = (n: number) => new Intl.NumberFormat("id-ID").format(n);
 
   useEffect(() => {
-    // Load Vendor & Material
     Promise.all([
-        fetch('http://localhost:5000/api/vendor').then(r => r.json()), // Pastikan route vendor ada
+        fetch('http://localhost:5000/api/vendor').then(r => r.json()),
         fetch('http://localhost:5000/api/materials').then(r => r.json())
     ]).then(([v, m]) => {
         setVendors(v || [])
@@ -35,7 +39,6 @@ export default function CreatePurchase() {
     const newItems = [...items] as any
     newItems[idx][field] = val
     
-    // Auto fill price jika material dipilih
     if(field === 'materialId') {
         const mat = materials.find(m => m.id == val)
         if(mat) newItems[idx].price = mat.cost || 0
@@ -44,7 +47,10 @@ export default function CreatePurchase() {
   }
 
   const handleSave = async () => {
-    if(!form.vendorId) return alert("Pilih Vendor dulu!")
+    if(!form.vendorId){
+      setResult({open:true, ok:false, msg:"Pilih Vendor dulu"})
+      return
+    }
     
     setLoading(true)
     const payload = { ...form, items }
@@ -56,11 +62,13 @@ export default function CreatePurchase() {
             body: JSON.stringify(payload)
         })
         if(res.ok) {
-            alert("✅ Purchase Order Created!")
-            router.push("/purchasing") // Arahkan ke list PO
+          setResult({open:true, ok:true, msg:"Purchase Order Created"})
+          setTimeout(()=> router.push("/purchasing"), 1200)
+        } else {
+          setResult({open:true, ok:false, msg:"Gagal membuat PO"})
         }
     } catch(e) {
-        alert("Error connection")
+        setResult({open:true, ok:false, msg:"Error connection"})
     } finally {
         setLoading(false)
     }
@@ -72,7 +80,6 @@ export default function CreatePurchase() {
     <section className="min-h-screen bg-[#0D1117] text-gray-200 p-8 flex justify-center">
       <div className="w-full max-w-5xl bg-[#161b22] border border-gray-800 rounded-2xl shadow-xl">
         
-        {/* HEADER */}
         <div className="p-6 border-b border-gray-800 flex justify-between items-center">
             <h1 className="text-2xl font-bold text-white flex items-center gap-2">
                 🛒 New Purchase Order
@@ -84,7 +91,6 @@ export default function CreatePurchase() {
         </div>
 
         <div className="p-8 space-y-6">
-            {/* FORM ATAS */}
             <div className="grid grid-cols-2 gap-6">
                 <div>
                     <label className="text-xs font-bold text-gray-500 uppercase mb-2 block">Vendor</label>
@@ -106,7 +112,6 @@ export default function CreatePurchase() {
                 </div>
             </div>
 
-            {/* TABEL ITEM */}
             <div>
                 <table className="w-full text-sm text-left">
                     <thead className="bg-gray-800 text-gray-400 uppercase font-bold text-xs">
@@ -163,7 +168,6 @@ export default function CreatePurchase() {
                 <button onClick={addItem} className="mt-3 text-xs font-bold text-blue-400 hover:text-blue-300 uppercase">+ Add Line</button>
             </div>
 
-            {/* FOOTER */}
             <div className="pt-6 border-t border-gray-800 flex justify-end gap-3">
                 <button className="px-6 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-700">Discard</button>
                 <button 
@@ -177,6 +181,30 @@ export default function CreatePurchase() {
 
         </div>
       </div>
+
+      {result.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div
+            className="absolute inset-0 bg-black/60"
+            onClick={()=>setResult({...result, open:false})}
+          />
+          <div className="relative bg-[#161b22] border border-gray-700 rounded-xl p-6 w-full max-w-sm mx-4">
+            <h3 className="text-lg font-semibold text-white mb-2">
+              {result.ok ? "Berhasil" : "Info"}
+            </h3>
+            <p className="text-sm text-gray-300 mb-5">{result.msg}</p>
+            <div className="flex justify-end">
+              <button
+                onClick={()=>setResult({...result, open:false})}
+                className="px-4 py-2 bg-gray-800 rounded-lg text-white"
+              >
+                Oke
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </section>
   )
 }

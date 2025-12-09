@@ -163,7 +163,7 @@ export default function ProductsPage() {
       {/* === PRODUCTS SECTION (Tetap Bisa Diedit / Link) === */}
       <div className="mb-12">
         <div className="flex items-center gap-3 mb-6">
-          <h2 className="text-xl font-bold text-white">Finished Goods</h2>
+          <h2 className="text-xl font-bold text-white">Barang Jadi</h2>
           <span className="px-2 py-0.5 rounded-full bg-gray-800 text-xs text-gray-400 border border-gray-700">{products.length} Items</span>
         </div>
 

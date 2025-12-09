@@ -11,7 +11,15 @@ export default function PurchaseDetail({ params }: any) {
   const [loading, setLoading] = useState(true)
   const [processing, setProcessing] = useState(false)
 
-  // --- HELPER FORMAT ---
+  const [modal, setModal] = useState<{open:boolean; ok:boolean; msg:string}>({
+    open:false,
+    ok:false,
+    msg:''
+  })
+
+  // modal konfirmasi baru
+  const [confirmReceive, setConfirmReceive] = useState(false)
+
   const formatRupiah = (num: number) => {
     return new Intl.NumberFormat("id-ID", {
       style: "currency",
@@ -31,20 +39,16 @@ export default function PurchaseDetail({ params }: any) {
       return "text-yellow-400 bg-yellow-900/20 border-yellow-800";
   }
 
-  // --- FETCH DATA ---
   const fetchDetail = async () => {
     try {
       const res = await fetch(`http://localhost:5000/api/purchasing/${id}`)
       if (res.ok) {
           const data = await res.json();
-          // Cek apakah data dibungkus 'data' atau langsung object
           setPo(data.data || data); 
       } else {
-          console.error("Failed to load PO");
           setPo(null);
       }
     } catch (e) {
-      console.error(e)
     } finally {
       setLoading(false)
     }
@@ -52,53 +56,50 @@ export default function PurchaseDetail({ params }: any) {
 
   useEffect(() => { fetchDetail() }, [id])
 
-  // --- ACTION: RECEIVE PRODUCTS ---
-  const handleReceive = async () => {
-      if(!confirm("Terima barang dan update stok gudang?")) return;
+  // fungsi baru yang benar2 melakukan receive
+  const doReceive = async () => {
+    setProcessing(true)
+    try {
+      const res = await fetch(`http://localhost:5000/api/purchasing/${id}/receive`, {
+        method: 'POST'
+      })
+      const data = await res.json()
       
-      setProcessing(true);
-      try {
-          const res = await fetch(`http://localhost:5000/api/purchasing/${id}/receive`, {
-              method: 'POST'
-          });
-          const data = await res.json();
-          
-          if(res.ok) {
-              alert("✅ Stok Berhasil Ditambahkan ke Inventory!");
-              fetchDetail(); // Refresh data
-          } else {
-              alert("❌ Gagal: " + (data.error || "Unknown Error"));
-          }
-      } catch(e) {
-          alert("Network Error");
-      } finally {
-          setProcessing(false);
+      if(res.ok) {
+        setModal({open:true, ok:true, msg:"Stok berhasil ditambahkan ke inventory"})
+        fetchDetail()
+      } else {
+        setModal({open:true, ok:false, msg: data.error || "Gagal"})
       }
+    } catch(e) {
+      setModal({open:true, ok:false, msg:"Network Error"})
+    } finally {
+      setProcessing(false)
+      setConfirmReceive(false)
+    }
   }
 
   if (loading) return (
       <div className="min-h-screen bg-[#0D1117] flex items-center justify-center text-gray-500">
           <span className="animate-pulse">Loading Purchase Order...</span>
       </div>
-  );
+  )
 
   if (!po) return (
       <div className="min-h-screen bg-[#0D1117] flex items-center justify-center text-red-500">
           Order Not Found
       </div>
-  );
+  )
 
-  // LOGIC HITUNG TOTAL (ROBUST)
   const grandTotal = (po.RFQItems || po.items || []).reduce((acc: number, item: any) => {
       const qty = Number(item.qty || item.quantity || 0);
       const price = Number(item.price || item.unitPrice || 0);
       return acc + (qty * price);
-  }, 0);
+  }, 0)
 
   return (
     <section className="min-h-screen bg-[#0D1117] text-gray-200 p-6 md:p-10">
       
-      {/* HEADER & NAV */}
       <div className="max-w-5xl mx-auto mb-8">
          <div className="flex justify-between items-center mb-6">
             <Link href="/purchasing" className="text-sm text-gray-500 hover:text-white inline-flex items-center gap-1 transition">
@@ -117,11 +118,10 @@ export default function PurchaseDetail({ params }: any) {
                 <p className="text-gray-400 text-sm">Created on {formatDate(po.createdAt)}</p>
             </div>
 
-            {/* ACTION BUTTONS */}
             <div className="flex gap-3">
                 {po.status !== "Done" && (
                     <button 
-                        onClick={handleReceive}
+                        onClick={()=>setConfirmReceive(true)}
                         disabled={processing}
                         className={`px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-medium shadow-lg shadow-emerald-900/20 flex items-center gap-2 transition ${processing ? 'opacity-50 cursor-not-allowed' : ''}`}
                     >
@@ -133,7 +133,10 @@ export default function PurchaseDetail({ params }: any) {
                         )}
                     </button>
                 )}
-                <button className="px-5 py-2.5 bg-gray-800 hover:bg-gray-700 text-white rounded-lg border border-gray-700 transition">
+                <button
+                  onClick={()=>window.print()}
+                  className="px-5 py-2.5 bg-gray-800 hover:bg-gray-700 text-white rounded-lg border border-gray-700 transition"
+                >
                     Print PDF
                 </button>
             </div>
@@ -225,6 +228,48 @@ export default function PurchaseDetail({ params }: any) {
             </table>
         </div>
       </div>
+           {confirmReceive && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/60" onClick={()=>setConfirmReceive(false)}/>
+          <div className="relative bg-[#161b22] border border-gray-700 rounded-xl p-6 w-full max-w-sm mx-4">
+            <h3 className="text-lg font-semibold text-white mb-2">Terima barang?</h3>
+            <p className="text-sm text-gray-300 mb-5">Barang akan masuk stok gudang</p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={()=>setConfirmReceive(false)}
+                className="px-4 py-2 bg-gray-800 rounded-lg text-white"
+              >
+                Batal
+              </button>
+              <button
+                onClick={doReceive}
+                disabled={processing}
+                className="px-4 py-2 bg-emerald-600 rounded-lg text-white"
+              >
+                {processing ? "Processing..." : "Ya, terima"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+            {modal.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/60" onClick={()=>setModal({...modal, open:false})}/>
+          <div className="relative bg-[#161b22] border border-gray-700 rounded-xl p-6 w-full max-w-sm mx-4">
+            <h3 className="text-lg font-semibold text-white mb-2">{modal.ok ? "Berhasil" : "Info"}</h3>
+            <p className="text-sm text-gray-300 mb-5">{modal.msg}</p>
+            <div className="flex justify-end">
+              <button
+                onClick={()=>setModal({...modal, open:false})}
+                className="px-4 py-2 bg-gray-800 rounded-lg text-white"
+              >
+                Oke
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </section>
   )

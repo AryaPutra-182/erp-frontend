@@ -10,7 +10,14 @@ export default function DeliveryOrderDetail({ params }: any) {
   const [delivery, setDelivery] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  // 1. Helper Format Tanggal
+  const [modal, setModal] = useState<{open:boolean; msg:string}>({
+    open:false,
+    msg:""
+  });
+
+  // 🔥 NEW: modal konfirmasi untuk Create Invoice
+  const [confirmInvoice, setConfirmInvoice] = useState(false);
+
   const formatDate = (dateString: string) => {
     if (!dateString) return "-";
     return new Date(dateString).toLocaleDateString("id-ID", {
@@ -18,7 +25,6 @@ export default function DeliveryOrderDetail({ params }: any) {
     });
   };
 
-  // 2. Helper Warna Status
   const getStatusColor = (status: string) => {
     switch (status) {
       case "Pending": return "bg-yellow-500/10 text-yellow-400 border-yellow-500/20";
@@ -45,11 +51,12 @@ export default function DeliveryOrderDetail({ params }: any) {
     fetchDetail();
   }, [id]);
 
-  // ===== LOGIC ACTIONS (Sama seperti sebelumnya, hanya styling beda) =====
-  
   const updateStatus = async () => {
     const next = delivery.status === "Pending" ? "Partial" : delivery.status === "Partial" ? "Delivered" : null;
-    if (!next) return alert("✔ Already Delivered");
+    if (!next) {
+      setModal({open:true, msg:"Already Delivered"});
+      return;
+    }
 
     const res = await fetch(`http://localhost:5000/api/delivery-orders/${id}/status`, {
       method: "PUT",
@@ -57,48 +64,64 @@ export default function DeliveryOrderDetail({ params }: any) {
       body: JSON.stringify({ status: next }),
     });
 
-    if (!res.ok) return alert("❌ Failed update");
-    alert(`✔ Status Updated: ${next}`);
+    if (!res.ok){
+      setModal({open:true, msg:"Failed update"});
+      return;
+    }
+
+    setModal({open:true, msg:`Status Updated: ${next}`});
     fetchDetail();
   };
 
   const updateQty = async (item: any, value: number) => {
     if (value > item.quantityDemand) {
-      alert("❌ Cannot exceed ordered quantity");
-      return fetchDetail(); // Reset input
+      setModal({open:true, msg:"Cannot exceed ordered quantity"});
+      return fetchDetail();
     }
     const res = await fetch(`http://localhost:5000/api/delivery-orders/item/${item.id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ deliveredQty: value }),
     });
-    if (!res.ok) return alert("❌ Failed update qty");
+    if (!res.ok){
+      setModal({open:true, msg:"Failed update qty"});
+      return;
+    }
     fetchDetail();
   };
 
   const validateDelivery = async () => {
     const res = await fetch(`http://localhost:5000/api/delivery-orders/${id}/validate`, { method: "POST" });
     const data = await res.json();
-    if (!res.ok) return alert(data.error || "❌ Failed to validate");
-    alert("✔ Delivery Validated & Stock Updated");
+    if (!res.ok){
+      setModal({open:true, msg:data.error || "Failed to validate"});
+      return;
+    }
+    setModal({open:true, msg:"Delivery Validated & Stock Updated"});
     fetchDetail();
   };
 
+  // 🔥 Sudah tidak pakai confirm() lagi
   const createInvoice = async () => {
-    if (!confirm("Create Invoice for this delivery?")) return;
     try {
       const res = await fetch(`http://localhost:5000/api/invoices/from-delivery/${id}`, { 
         method: "POST", headers: { "Content-Type": "application/json" } 
       });
+
       const responseText = await res.text(); 
       let data;
       try { data = JSON.parse(responseText); } catch { data = { error: responseText }; }
 
-      if (!res.ok) throw new Error(data.error || "Failed creating invoice");
-      alert("✔ Invoice Created Successfully!");
-      router.push("/invoices"); 
+      if (!res.ok){
+        setModal({open:true, msg:data.error || "Failed creating invoice"});
+        return;
+      }
+
+      setModal({open:true, msg:"Invoice Created Successfully!"});
+      setTimeout(()=>router.push("/invoices"), 700);
+
     } catch (err: any) {
-      alert("❌ Error: " + err.message);
+      setModal({open:true, msg:"Error: " + err.message});
     }
   };
 
@@ -141,7 +164,10 @@ export default function DeliveryOrderDetail({ params }: any) {
                     </>
                 )}
                 {delivery.status === "Delivered" && (
-                    <button onClick={createInvoice} className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg shadow-lg shadow-purple-900/20 transition text-sm font-medium flex items-center gap-2">
+                    <button 
+                      onClick={() => setConfirmInvoice(true)} 
+                      className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg shadow-lg shadow-purple-900/20 transition text-sm font-medium flex items-center gap-2"
+                    >
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v20"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
                         Create Invoice
                     </button>
@@ -215,11 +241,11 @@ export default function DeliveryOrderDetail({ params }: any) {
 
                     return (
                         <div key={item.id} className="grid grid-cols-12 gap-4 p-4 items-center hover:bg-gray-800/30 transition">
-                            {/* Product Info */}
+                            
                             <div className="col-span-5">
                                 <p className="font-bold text-white text-base">{item.Product?.name}</p>
                                 <p className="text-gray-500 text-xs mt-0.5">SKU: {item.Product?.sku || "-"}</p>
-                                {/* Progress Bar */}
+
                                 <div className="w-full bg-gray-700 h-1.5 rounded-full mt-3 overflow-hidden">
                                     <div 
                                         className={`h-full rounded-full ${remaining === 0 ? 'bg-emerald-500' : 'bg-blue-500'}`} 
@@ -228,14 +254,12 @@ export default function DeliveryOrderDetail({ params }: any) {
                                 </div>
                             </div>
 
-                            {/* Ordered */}
                             <div className="col-span-2 text-center">
                                 <span className="bg-gray-800 text-gray-300 px-3 py-1 rounded-md font-mono text-sm border border-gray-700">
                                     {ordered}
                                 </span>
                             </div>
 
-                            {/* Delivered Input */}
                             <div className="col-span-3 text-center">
                                 {delivery.status === "Delivered" ? (
                                     <span className="font-bold text-emerald-400 text-lg">{delivered}</span>
@@ -251,7 +275,6 @@ export default function DeliveryOrderDetail({ params }: any) {
                                 )}
                             </div>
 
-                            {/* Remaining */}
                             <div className="col-span-2 text-right">
                                 {remaining === 0 ? (
                                     <span className="text-emerald-500 font-bold text-sm flex items-center justify-end gap-1">
@@ -269,6 +292,58 @@ export default function DeliveryOrderDetail({ params }: any) {
             </div>
         </div>
       </div>
+
+      {/* 🔥 MODAL INFO */}
+      {modal.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/60" onClick={()=>setModal({open:false, msg:""})}/>
+          <div className="relative bg-[#161b22] border border-gray-700 rounded-xl p-6 w-full max-w-sm mx-4">
+            <h3 className="text-lg font-semibold text-white mb-2">Info</h3>
+            <p className="text-sm text-gray-300 mb-5">{modal.msg}</p>
+            <div className="flex justify-end">
+              <button
+                onClick={()=>setModal({open:false, msg:""})}
+                className="px-4 py-2 bg-gray-800 rounded-lg text-white"
+              >
+                Oke
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 🔥 NEW — MODAL KONFIRMASI CREATE INVOICE */}
+      {confirmInvoice && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/60" onClick={() => setConfirmInvoice(false)} />
+
+          <div className="relative bg-[#161b22] border border-gray-700 rounded-xl p-6 w-full max-w-sm mx-4">
+            <h3 className="text-lg font-semibold text-white mb-2">Confirm</h3>
+            <p className="text-sm text-gray-300 mb-5">
+              Create Invoice for this delivery?
+            </p>
+
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setConfirmInvoice(false)}
+                className="px-4 py-2 bg-gray-700 rounded-lg text-gray-200"
+              >
+                Cancel
+              </button>
+
+              <button
+                onClick={() => {
+                  setConfirmInvoice(false);
+                  createInvoice(); // ← lanjut prosess
+                }}
+                className="px-4 py-2 bg-purple-600 rounded-lg text-white"
+              >
+                Yes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </section>
   );

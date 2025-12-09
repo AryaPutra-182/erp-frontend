@@ -9,7 +9,11 @@ export default function SalesOrderDetail({ params }: any) {
   const [order, setOrder] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  // ----- LOAD DATA -----
+  const [modal, setModal] = useState<{open:boolean; msg:string}>({
+    open:false,
+    msg:""
+  });
+
   useEffect(() => {
     const load = async () => {
       try {
@@ -18,7 +22,7 @@ export default function SalesOrderDetail({ params }: any) {
         const data = await res.json();
         setOrder(data);
       } catch (err) {
-        console.error(err);
+        setModal({open:true, msg:"Failed to load order"});
       } finally {
         setLoading(false);
       }
@@ -30,25 +34,38 @@ export default function SalesOrderDetail({ params }: any) {
   if (loading) return <p className="text-gray-400 p-6">Loading...</p>;
   if (!order) return <p className="text-red-400 p-6">Order not found</p>;
 
-
-  // ----- CONFIRMATION -----
   const confirmOrder = async () => {
     const res = await fetch(`http://localhost:5000/api/sales/${id}/confirm`, {
       method: "POST",
     });
 
-    if (!res.ok) return alert("❌ Failed confirming order");
+    if (!res.ok){
+      setModal({open:true, msg:"Failed confirming order"});
+      return;
+    }
 
-    alert("✔ Order Confirmed & Stock Updated");
-
-    // Refresh data langsung
+    setModal({open:true, msg:"Order Confirmed & Stock Updated"});
     setOrder({ ...order, status: "Confirmed" });
   };
 
+  const createDO = async () => {
+    const res = await fetch(`http://localhost:5000/api/delivery-orders/create-from-sales/${id}`, {
+      method: "POST"
+    });
+
+    const data = await res.json();
+
+    if (!res.ok){
+      setModal({open:true, msg:data.error || "Failed"});
+      return;
+    }
+    
+    setModal({open:true, msg:"Delivery Order created!"});
+    setTimeout(()=>router.push("/delivery-orders"), 900);
+  };
 
   return (
     <section className="text-white p-6">
-      {/* Header */}
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">{order.soNumber}</h1>
 
@@ -66,30 +83,16 @@ export default function SalesOrderDetail({ params }: any) {
         )}
 
         {order.status === "Confirmed" && (
-    <button
-    onClick={async () => {
-      const res = await fetch(`http://localhost:5000/api/delivery-orders/create-from-sales/${id}`, {
-        method: "POST"
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) return alert(data.error || "Failed");
-      
-      alert("📦 Delivery Order created!");
-      router.push("/delivery-orders");
-    }}
-    className="px-4 py-2 bg-green-600 rounded hover:bg-green-700"
-  >
-    Create Delivery Order
-  </button>
-)}
+          <button
+            onClick={createDO}
+            className="px-4 py-2 bg-green-600 rounded hover:bg-green-700"
+          >
+            Create Delivery Order
+          </button>
+        )}
 
       </div>
 
-      
-
-      {/* Order Info */}
       <div className="bg-gray-900 p-4 rounded border border-gray-700 space-y-2">
         <p><strong>Status:</strong> {order.status}</p>
         <p><strong>Payment:</strong> {order.paymentStatus}</p>
@@ -98,7 +101,6 @@ export default function SalesOrderDetail({ params }: any) {
         </p>
       </div>
 
-      {/* Items */}
       <h2 className="mt-6 mb-2 text-lg font-semibold">Items</h2>
 
       <table className="w-full border border-gray-700">
@@ -134,7 +136,25 @@ export default function SalesOrderDetail({ params }: any) {
           )}
         </tbody>
       </table>
-      
+
+      {modal.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/60" onClick={()=>setModal({open:false, msg:""})}/>
+          <div className="relative bg-gray-900 border border-gray-700 rounded-xl p-6 w-full max-w-sm mx-4">
+            <h3 className="text-lg font-semibold text-white mb-2">Info</h3>
+            <p className="text-sm text-gray-300 mb-5">{modal.msg}</p>
+            <div className="flex justify-end">
+              <button
+                onClick={()=>setModal({open:false, msg:""})}
+                className="px-4 py-2 bg-gray-800 rounded-lg text-white"
+              >
+                Oke
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </section>
   );
 }

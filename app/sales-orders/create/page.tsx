@@ -10,12 +10,16 @@ export default function CreateSalesOrder() {
   const [products, setProducts] = useState<any[]>([]);
   const [items, setItems] = useState<any[]>([]);
 
+  const [modal, setModal] = useState<{open:boolean; msg:string}>({
+    open:false,
+    msg:""
+  });
+
   const [form, setForm] = useState({
     customerId: "",
     transactionDate: new Date().toISOString().split("T")[0],
   });
 
-  // Fetch dropdown data
   useEffect(() => {
     fetch("http://localhost:5000/api/customers")
       .then(res => res.json())
@@ -26,12 +30,10 @@ export default function CreateSalesOrder() {
       .then(setProducts);
   }, []);
 
-  // Add product to list
   const addItem = () => {
     setItems([...items, { productId: "", quantity: 1, unitPrice: 0 }]);
   };
 
-  // Update row state
   const updateItem = (index: number, field: string, value: any) => {
     const newItems = [...items];
 
@@ -47,15 +49,19 @@ export default function CreateSalesOrder() {
     setItems(newItems);
   };
 
-  // Remove item
   const removeItem = (i: number) => {
     setItems(items.filter((_, index) => index !== i));
   };
 
-  // Submit Sales Order
   const submitForm = async () => {
-    if (!form.customerId) return alert("Customer Cannot Be Empty");
-    if (items.length === 0) return alert("Add at least one item");
+    if (!form.customerId){
+      setModal({open:true, msg:"Customer Cannot Be Empty"});
+      return;
+    }
+    if (items.length === 0){
+      setModal({open:true, msg:"Add at least one item"});
+      return;
+    }
 
     const res = await fetch("http://localhost:5000/api/sales", {
       method: "POST",
@@ -63,10 +69,13 @@ export default function CreateSalesOrder() {
       body: JSON.stringify({ ...form, items }),
     });
 
-    if (!res.ok) return alert("Failed creating sales order");
+    if (!res.ok){
+      setModal({open:true, msg:"Failed creating sales order"});
+      return;
+    }
 
-    alert("Sales Order Created");
-    router.push("/sales-orders");
+    setModal({open:true, msg:"Sales Order Created"});
+    setTimeout(()=>router.push("/sales-orders"), 900);
   };
 
   return (
@@ -82,10 +91,8 @@ export default function CreateSalesOrder() {
         </button>
       </div>
 
-      {/* FORM */}
       <div className="bg-gray-900 p-5 rounded-lg border border-gray-700 space-y-5">
 
-        {/* CUSTOMER */}
         <div>
           <label className="block text-sm mb-2">Customer *</label>
           <select
@@ -100,7 +107,6 @@ export default function CreateSalesOrder() {
           </select>
         </div>
 
-        {/* DATE */}
         <div>
           <label className="block text-sm mb-2">Transaction Date</label>
           <input
@@ -111,7 +117,6 @@ export default function CreateSalesOrder() {
           />
         </div>
 
-        {/* PRODUCT TABLE */}
         <h2 className="text-lg font-semibold mt-6">Order Lines</h2>
 
         <table className="w-full text-white border border-gray-700">
@@ -175,6 +180,26 @@ export default function CreateSalesOrder() {
           + Add Line
         </button>
       </div>
+
+      {/* modal */}
+      {modal.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/60" onClick={()=>setModal({open:false, msg:""})}/>
+          <div className="relative bg-gray-900 border border-gray-700 rounded-xl p-6 w-full max-w-sm mx-4">
+            <h3 className="text-lg font-semibold text-white mb-2">Info</h3>
+            <p className="text-sm text-gray-300 mb-5">{modal.msg}</p>
+            <div className="flex justify-end">
+              <button
+                onClick={()=>setModal({open:false, msg:""})}
+                className="px-4 py-2 bg-gray-800 rounded-lg text-white"
+              >
+                Oke
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </section>
   );
 }
